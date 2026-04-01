@@ -1,0 +1,140 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<main class="home-desktop">
+  <!-- Background weather image -->
+  <figure class="bg-weather">
+    <img class="img" src="images/bg-weather-3.png" alt="Snowy weather background" />
+  </figure>
+  <!-- Blurred sidebar overlay -->
+  <div class="bg-blur" aria-hidden="true"></div>
+  <!-- Search bar separator line -->
+  <div class="rectangle" aria-hidden="true"></div>
+  <!-- Forecast section separator line -->
+  <div class="div" aria-hidden="true"></div>
+  <!-- Current temperature display -->
+  <p class="text-wrapper" aria-label="Current temperature: 16 degrees">16°</p>
+  <!-- Location and date/time info -->
+  <div class="group">
+    <h1 class="text-wrapper-2">London</h1>
+    <p class="p">06:09 - Monday, 9 Sep '23</p>
+  </div>
+  <!-- Current weather icon (cloudy) -->
+  <figure class="element-cloudy">
+    <img class="outline" src="images/outline-73.svg" alt="Cloudy weather icon" />
+  </figure>
+  <!-- Search location input area -->
+  <div class="search-wrapper" role="search">
+    <label for="location-search" class="sr-only">Search Location</label>
+    <input
+      id="location-search"
+      class="text-wrapper-3"
+      type="search"
+      placeholder="Search Location..."
+      aria-label="Search for a location"
+    />
+    <button class="group-2" type="button" aria-label="Search">
+      <span class="sr-only">Search</span>
+    </button>
+  </div>
+  <!-- Weather details heading -->
+  <h2 class="text-wrapper-4">Weather Details...</h2>
+  <!-- Today's forecast heading -->
+  <h2 class="text-wrapper-5">Today's Weather Forecast...</h2>
+  <!-- Weather details panel -->
+  <section class="frame" aria-label="Weather details">
+    <h3 class="thunderstorm-with">THUNDERSTORM WITH LIGHT DRIZZLE</h3>
+    <!-- Temp max -->
+    <div class="group-4">
+      <div class="group-5">
+        <span class="text-wrapper-9">Temp max</span>
+        <span class="text-wrapper-10">19°</span>
+      </div>
+      <img class="vector" src="images/vector-61.svg" alt="Temperature max icon" />
+    </div>
+    <!-- Temp min -->
+    <div class="group-4">
+      <div class="group-5">
+        <span class="text-wrapper-9">Temp min</span>
+        <span class="text-wrapper-10">15°</span>
+      </div>
+      <img class="vector" src="images/vector-66.svg" alt="Temperature min icon" />
+    </div>
+    <!-- Humidity -->
+    <div class="group-6">
+      <img class="outline-3" src="images/outline-68.svg" alt="Humidity icon" />
+      <div class="group-7">
+        <span class="text-wrapper-11">Humadity</span>
+        <span class="text-wrapper-12">58%</span>
+      </div>
+    </div>
+    <!-- Cloudy -->
+    <div class="group-8">
+      <img class="outline-4" src="images/outline-12.svg" alt="Cloud coverage icon" />
+      <div class="group-9">
+        <span class="text-wrapper-13">Cloudy</span>
+        <span class="text-wrapper-12">86%</span>
+      </div>
+    </div>
+    <!-- Wind -->
+    <div class="group-10">
+      <img class="outline-5" src="images/outline-78.svg" alt="Wind icon" />
+      <div class="group-11">
+        <span class="text-wrapper-14">Wind</span>
+        <span class="text-wrapper-15">5km/h</span>
+      </div>
+    </div>
+  </section>
+  <!-- Forecast cards -->
+  <article class="forecast-card" aria-label="Forecast at 09:00 - Snow, 19 degrees">
+    <div class="group-3">
+      <span class="text-wrapper-6">09:00</span>
+      <span class="text-wrapper-7">Snow</span>
+    </div>
+    <span class="text-wrapper-8">19°</span>
+    <figure class="element-snow">
+      <img class="outline-2" src="images/outline-26.svg" alt="Snow icon" />
+    </figure>
+  </article>
+  <article class="forecast-card-2" aria-label="Forecast at 09:00 - Snow, 19 degrees">
+    <div class="group-3">
+      <span class="text-wrapper-6">09:00</span>
+      <span class="text-wrapper-7">Snow</span>
+    </div>
+    <span class="text-wrapper-8">19°</span>
+    <figure class="element-snow">
+      <img class="outline-2" src="images/outline-26.svg" alt="Snow icon" />
+    </figure>
+  </article>
+  <article class="forecast-card-3" aria-label="Forecast at 09:00 - Snow, 19 degrees">
+    <div class="group-3">
+      <span class="text-wrapper-6">09:00</span>
+      <span class="text-wrapper-7">Snow</span>
+    </div>
+    <span class="text-wrapper-8">19°</span>
+    <figure class="element-snow-2">
+      <img class="outline-2" src="images/outline-26.svg" alt="Snow icon" />
+    </figure>
+  </article>
+  <article class="forecast-card-4" aria-label="Forecast at 09:00 - Snow, 19 degrees">
+    <div class="group-3">
+      <span class="text-wrapper-6">09:00</span>
+      <span class="text-wrapper-7">Snow</span>
+    </div>
+    <span class="text-wrapper-8">19°</span>
+    <figure class="element-snow-2">
+      <img class="outline-2" src="images/outline-26.svg" alt="Snow icon" />
+    </figure>
+  </article>
+  <article class="forecast-card-5" aria-label="Forecast at 09:00 - Snow, 19 degrees">
+    <div class="group-3">
+      <span class="text-wrapper-6">09:00</span>
+      <span class="text-wrapper-7">Snow</span>
+    </div>
+    <span class="text-wrapper-8">19°</span>
+    <figure class="element-snow-2">
+      <img class="outline-2" src="images/outline-26.svg" alt="Snow icon" />
+    </figure>
+  </article>
+</main>
