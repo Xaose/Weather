@@ -1,7 +1,12 @@
+using Weather.Models;
+using Weather.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.Configure<OpenWeatherOptions>(builder.Configuration.GetSection("OpenWeather"));
+builder.Services.AddHttpClient<ILocationSearchService, OpenWeatherLocationSearchService>();
 
 var app = builder.Build();
 
