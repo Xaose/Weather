@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.Configure<OpenWeatherOptions>(builder.Configuration.GetSection("OpenWeather"));
 builder.Services.AddHttpClient<ILocationSearchService, OpenWeatherLocationSearchService>();
-
+builder.Services.AddMemoryCache();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
