@@ -24,7 +24,9 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
         {
             Latitude = selectedLatitude,
             Longitude = selectedLongitude,
-            LocationName = string.IsNullOrWhiteSpace(location) ? DefaultLocationName : location.Trim()
+            LocationName = string.IsNullOrWhiteSpace(location)
+                ? (latitude.HasValue && longitude.HasValue ? "Current location" : DefaultLocationName)
+                : location.Trim()
         };
 
         try
@@ -51,6 +53,10 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
             }
             catch
             {
+                if (latitude.HasValue && longitude.HasValue && string.IsNullOrWhiteSpace(location))
+                {
+                    model.LocationName = "Current location";
+                }
             }
 
             if (model.CurrentWeather == null)

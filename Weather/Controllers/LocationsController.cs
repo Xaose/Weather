@@ -9,14 +9,14 @@ namespace Weather.Controllers;
 public partial class LocationsController(ILocationSearchService locationSearchService) : ControllerBase
 {
     private static readonly Regex QueryRegex = MyRegex();
-    [GeneratedRegex(@"^[\p{L}\s\.\-]{1,50}$", RegexOptions.Compiled)] private static partial Regex MyRegex();
+    [GeneratedRegex(@"^[\p{L}\p{M}\s\.\-',]{1,80}$", RegexOptions.Compiled)] private static partial Regex MyRegex();
 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string query, [FromQuery] int limit = 5,
         CancellationToken cancellationToken = default)
     {
         if(string.IsNullOrWhiteSpace(query) || !QueryRegex.IsMatch(query)) return BadRequest(
-            "Некоректный запрос. Разрешены только кирилица/датиница, пробел, точка, дефис. До 50 символов.");
+            "Некорректный запрос. Разрешены буквы, пробел, точка, запятая, дефис и апостроф. До 80 символов.");
         var result = await locationSearchService.SearchLocationsAsync(query.Trim(), Math.Clamp(limit, 1, 10), cancellationToken);
         return Ok(result);
     }

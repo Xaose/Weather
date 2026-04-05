@@ -24,12 +24,13 @@
     var locationDisplayName = string.IsNullOrWhiteSpace(Model.LocationDisplayName)
         ? "Select a location"
         : Model.LocationDisplayName;
-    var greeting = DateTime.Now.Hour switch
-    {
-        < 12 => "Good morning",
-        < 18 => "Good afternoon",
-        _ => "Good evening"
-    };
+
+    var currentHour = DateTime.Now.Hour;
+    var greeting = currentHour < 12
+        ? "Good morning"
+        : currentHour < 18
+            ? "Good afternoon"
+            : "Good evening";
 }
 
 <div class="weather-dashboard">

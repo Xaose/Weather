@@ -3,9 +3,10 @@ using Weather.Models;
 
 namespace Weather.Services;
 
-public class OpenWeatherLocationSearchService(IHttpClientFactory httpClientFactory, IOptions<OpenWeatherOptions> options)
+public class OpenWeatherLocationSearchService(HttpClient httpClient, IOptions<OpenWeatherOptions> options)
     : ILocationSearchService
 {
+    private readonly HttpClient _httpClient = httpClient;
     private readonly string _apiKey = options.Value.ApiKey ?? throw new InvalidOperationException("OpenWeather API key is not configured.");
 
     public async Task<IReadOnlyList<LocationSuggestionDto>> SearchLocationsAsync(
@@ -13,9 +14,8 @@ public class OpenWeatherLocationSearchService(IHttpClientFactory httpClientFacto
         int limit = 5,
         CancellationToken cancellationToken = default)
     {
-        var client = httpClientFactory.CreateClient();
         var url = $"https://api.openweathermap.org/geo/1.0/direct?q={Uri.EscapeDataString(query)}&limit={limit}&appid={_apiKey}";
-        var response = await client.GetAsync(url, cancellationToken);
+        var response = await _httpClient.GetAsync(url, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
@@ -29,9 +29,8 @@ public class OpenWeatherLocationSearchService(IHttpClientFactory httpClientFacto
         int limit = 1,
         CancellationToken cancellationToken = default)
     {
-        var client = httpClientFactory.CreateClient();
         var url = $"https://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit={limit}&appid={_apiKey}";
-        var response = await client.GetAsync(url, cancellationToken);
+        var response = await _httpClient.GetAsync(url, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 

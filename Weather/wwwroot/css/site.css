@@ -19,7 +19,6 @@ html {
 }
 
 body {
-    min-height: 100vh;
     margin: 0;
     font-family: "Roboto", sans-serif;
     color: #eef4ff;
@@ -30,7 +29,7 @@ body {
 }
 
 main {
-    min-height: 100vh;
+    min-height: auto;
 }
 
 footer {
@@ -56,9 +55,16 @@ input {
     display: none !important;
 }
 
+/* External translator popup injected by browser extensions; keep it from covering app UI. */
+#tr-popup {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 .weather-dashboard {
     position: relative;
-    min-height: 100vh;
+    min-height: auto;
     padding: 24px;
     overflow: hidden;
 }
@@ -238,11 +244,15 @@ input {
 }
 
 .weather-dashboard-main {
+    position: relative;
+    z-index: 1;
     display: grid;
     gap: 24px;
 }
 
 .weather-dashboard-header {
+    position: relative;
+    z-index: 3;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -279,6 +289,8 @@ input {
 }
 
 .weather-dashboard-actions {
+    position: relative;
+    z-index: 4;
     display: flex;
     align-items: center;
     gap: 14px;
@@ -286,6 +298,7 @@ input {
 
 .weather-search-form {
     position: relative;
+    z-index: 5;
     width: min(100%, 430px);
 }
 
@@ -337,6 +350,7 @@ input {
 
 .weather-search-results {
     position: absolute;
+    z-index: 20;
     top: calc(100% + 12px);
     left: 0;
     right: 0;
