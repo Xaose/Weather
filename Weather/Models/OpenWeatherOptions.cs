@@ -1,6 +1,6 @@
-﻿namespace Weather.Models;
+namespace Weather.Models;
 
-public abstract class OpenWeatherOptions
+public class OpenWeatherOptions
 {
     public string? ApiKey { get; set; }
 }
