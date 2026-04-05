@@ -1,7 +1,234 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@using System.Globalization
+@model Weather.Models.HomeDashboardViewModel
+
+@functions {
+    public static string FormatTemperature(double temperature) => $"{Math.Round(temperature):0}°";
+
+    public static string FormatDayLabel(DateTime date, int index) => index == 0
+        ? "Today"
+        : date.ToString("ddd", CultureInfo.InvariantCulture);
+
+    public static string FormatHourLabel(DateTime date) => date
+        .ToString("htt", CultureInfo.InvariantCulture)
+        .Replace(" ", "")
+        .ToLowerInvariant();
 }
-<div class="text-center">
-    <h1 class="display-4">Welcome to Weather</h1>
-    <p>Get the latest weather updates and forecasts.</p>
+
+@{
+    ViewData["Title"] = "Forecast Dashboard";
+
+    var currentWeather = Model.CurrentWeather;
+    var hourlyForecasts = Model.HourlyForecast.HourlyForecasts.Take(5).ToList();
+    var weeklyForecasts = Model.WeeklyForecast.DailyForecasts.Take(7).ToList();
+    var todayForecast = weeklyForecasts.FirstOrDefault();
+    var locationDisplayName = string.IsNullOrWhiteSpace(Model.LocationDisplayName)
+        ? "Select a location"
+        : Model.LocationDisplayName;
+    var greeting = DateTime.Now.Hour switch
+    {
+        < 12 => "Good morning",
+        < 18 => "Good afternoon",
+        _ => "Good evening"
+    };
+}
+
+<div class="weather-dashboard">
+    <div class="weather-dashboard-shell">
+        <aside class="weather-side-rail" aria-label="Dashboard navigation">
+            <button class="weather-rail-button weather-rail-button--menu" type="button" aria-label="Menu">
+                <span class="weather-rail-glyph weather-rail-glyph--menu"></span>
+            </button>
+            <div class="weather-rail-stack">
+                <button class="weather-rail-button weather-rail-button--active" type="button" aria-label="Overview">
+                    <span class="weather-rail-glyph weather-rail-glyph--grid"></span>
+                </button>
+                <button class="weather-rail-button" type="button" aria-label="Timeline">
+                    <span class="weather-rail-glyph weather-rail-glyph--timeline"></span>
+                </button>
+                <button class="weather-rail-button" type="button" aria-label="Settings">
+                    <span class="weather-rail-glyph weather-rail-glyph--tune"></span>
+                </button>
+            </div>
+            <div class="weather-rail-profile">W</div>
+        </aside>
+
+        <section class="weather-dashboard-main">
+            <header class="weather-dashboard-header">
+                <div class="weather-dashboard-copy">
+                    <p class="weather-dashboard-kicker">Live weather</p>
+                    <h1 class="weather-dashboard-title">@greeting</h1>
+                    <p class="weather-dashboard-subtitle">Track current conditions, today’s details, and the next week in one place.</p>
+                </div>
+
+                <div class="weather-dashboard-actions">
+                    <form class="weather-search-form" method="get" asp-action="Index" asp-controller="Home" novalidate>
+                        <input class="weather-search-coordinate" type="hidden" name="latitude" value="@Model.Latitude" data-location-latitude>
+                        <input class="weather-search-coordinate" type="hidden" name="longitude" value="@Model.Longitude" data-location-longitude>
+
+                        <div class="weather-search-input-shell">
+                            <span class="weather-search-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M10.5 4a6.5 6.5 0 1 0 4.09 11.56l4.42 4.43 1.41-1.42-4.42-4.42A6.5 6.5 0 0 0 10.5 4Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z"></path>
+                                </svg>
+                            </span>
+                            <input class="weather-search-input" type="search" name="location" value="@locationDisplayName" placeholder="Search your location" autocomplete="off" spellcheck="false" data-location-search>
+                            <button class="weather-location-button" type="button" aria-label="Use current location" data-current-location>
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 2a1 1 0 0 1 1 1v1.07a8 8 0 0 1 6.93 6.93H21a1 1 0 1 1 0 2h-1.07A8 8 0 0 1 13 19.93V21a1 1 0 1 1-2 0v-1.07A8 8 0 0 1 4.07 13H3a1 1 0 1 1 0-2h1.07A8 8 0 0 1 11 4.07V3a1 1 0 0 1 1-1Zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="weather-search-results" data-location-results hidden></div>
+                    </form>
+
+                    <div class="weather-profile-badge">WS</div>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <section class="weather-panel weather-status-panel">
+                    <p class="weather-status-label">Unable to load forecast</p>
+                    <h2 class="weather-status-title">@Model.ErrorMessage</h2>
+                    <p class="weather-status-copy">Try another location from the search field, or use the current-location button to refresh the dashboard.</p>
+                </section>
+            }
+            else
+            {
+                <div class="weather-dashboard-grid">
+                    <section class="weather-panel weather-current-panel">
+                        <div class="weather-panel-topline">
+                            <span class="weather-location-pill">@locationDisplayName</span>
+                            <span class="weather-unit-pill">°C</span>
+                        </div>
+
+                        <div class="weather-current-content">
+                            <div class="weather-current-visual">
+                                @if (!string.IsNullOrWhiteSpace(currentWeather?.IconUrl))
+                                {
+                                    <img class="weather-current-illustration" src="@currentWeather.IconUrl" alt="@currentWeather.Description">
+                                }
+                                else
+                                {
+                                    <div class="weather-current-fallback"></div>
+                                }
+
+                                <div>
+                                    <p class="weather-current-day">@DateTime.Now.ToString("dddd", CultureInfo.InvariantCulture)</p>
+                                    <p class="weather-current-date">@DateTime.Now.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</p>
+                                </div>
+                            </div>
+
+                            <div class="weather-current-summary">
+                                <p class="weather-current-temperature">@FormatTemperature(currentWeather?.TemperatureC ?? 0)</p>
+                                @if (todayForecast != null)
+                                {
+                                    <p class="weather-current-range">@FormatTemperature(todayForecast.DayTemperatureC) / @FormatTemperature(todayForecast.NightTemperatureC)</p>
+                                }
+                                <p class="weather-current-condition">@(string.IsNullOrWhiteSpace(currentWeather?.Description) ? "Live conditions" : currentWeather.Description)</p>
+                                <p class="weather-current-feels-like">Feels like @FormatTemperature(currentWeather?.FeelsLike ?? currentWeather?.TemperatureC ?? 0)</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="weather-panel weather-highlights-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">Today’s</p>
+                                <h2 class="weather-section-title">Highlights</h2>
+                            </div>
+                            <span class="weather-section-tag">Updated live</span>
+                        </div>
+
+                        <div class="weather-highlight-grid">
+                            <article class="weather-highlight-card">
+                                <p class="weather-highlight-label">Wind status</p>
+                                <p class="weather-highlight-value">@Math.Round(currentWeather?.WindSpeedKmh ?? 0, 1) km/h</p>
+                                <p class="weather-highlight-meta">@(currentWeather?.WindDirectionText ?? "Calm")</p>
+                            </article>
+                            <article class="weather-highlight-card">
+                                <p class="weather-highlight-label">Humidity</p>
+                                <p class="weather-highlight-value">@(currentWeather?.Humidity ?? 0)%</p>
+                                <p class="weather-highlight-meta">Indoor comfort snapshot</p>
+                            </article>
+                            <article class="weather-highlight-card">
+                                <p class="weather-highlight-label">Pressure</p>
+                                <p class="weather-highlight-value">@(currentWeather?.PressureMmHg ?? 0) mm</p>
+                                <p class="weather-highlight-meta">@(currentWeather?.PressureHpa ?? 0) hPa</p>
+                            </article>
+                            <article class="weather-highlight-card">
+                                <p class="weather-highlight-label">Feels like</p>
+                                <p class="weather-highlight-value">@FormatTemperature(currentWeather?.FeelsLike ?? currentWeather?.TemperatureC ?? 0)</p>
+                                <p class="weather-highlight-meta">@(currentWeather?.Condition ?? "Current conditions")</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="weather-panel weather-hourly-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">Today’s</p>
+                                <h2 class="weather-section-title">Timeline</h2>
+                            </div>
+                            <span class="weather-section-tag">Next @hourlyForecasts.Count updates</span>
+                        </div>
+
+                        <div class="weather-hourly-list">
+                            @if (hourlyForecasts.Count == 0)
+                            {
+                                <p class="weather-empty-state">No hourly forecast is available right now.</p>
+                            }
+                            else
+                            {
+                                @foreach (var hourlyForecast in hourlyForecasts)
+                                {
+                                    <article class="weather-hourly-card">
+                                        <p class="weather-hourly-time">@FormatHourLabel(hourlyForecast.TimeUts)</p>
+                                        @if (!string.IsNullOrWhiteSpace(hourlyForecast.IconUrl))
+                                        {
+                                            <img class="weather-hourly-icon" src="@hourlyForecast.IconUrl" alt="@hourlyForecast.Description">
+                                        }
+                                        <p class="weather-hourly-temperature">@FormatTemperature(hourlyForecast.TemperatureC)</p>
+                                        <p class="weather-hourly-rain">@hourlyForecast.PrecipitationProbabilityPercent% rain</p>
+                                    </article>
+                                }
+                            }
+                        </div>
+                    </section>
+
+                    <section class="weather-panel weather-weekly-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">Extended</p>
+                                <h2 class="weather-section-title">7 day forecast</h2>
+                            </div>
+                            <span class="weather-section-tag">@weeklyForecasts.Count days</span>
+                        </div>
+
+                        <div class="weather-weekly-list">
+                            @if (weeklyForecasts.Count == 0)
+                            {
+                                <p class="weather-empty-state">No weekly forecast is available right now.</p>
+                            }
+                            else
+                            {
+                                @for (var index = 0; index < weeklyForecasts.Count; index++)
+                                {
+                                    var dailyForecast = weeklyForecasts[index];
+
+                                    <article class="weather-weekly-card">
+                                        <p class="weather-weekly-day">@FormatDayLabel(dailyForecast.Date, index)</p>
+                                        <p class="weather-weekly-high">@FormatTemperature(dailyForecast.DayTemperatureC)</p>
+                                        <p class="weather-weekly-low">Night @FormatTemperature(dailyForecast.NightTemperatureC)</p>
+                                        <p class="weather-weekly-wind">Wind @Math.Round(dailyForecast.WindSpeedKmh) km/h</p>
+                                    </article>
+                                }
+                            }
+                        </div>
+                    </section>
+                </div>
+            }
+        </section>
+    </div>
 </div>

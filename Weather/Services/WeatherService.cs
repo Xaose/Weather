@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
@@ -116,7 +116,7 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
                 .ToList()
         };
     }
-public async Task<HourlyForecastDto> GetDailyForecastAsync(
+public async Task<HourlyForecastDto?> GetDailyForecastAsync(
         double latitude,
         double longitude,
         int stepHours = 1,
