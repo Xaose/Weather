@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Weather.Models;
 using Weather.Services;
@@ -10,6 +11,17 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
     private const double DefaultLatitude = 23.8103;
     private const double DefaultLongitude = 90.4125;
     private const string DefaultLocationName = "Dhaka";
+
+    private static string T(string en, string ru, string be)
+    {
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return language switch
+        {
+            "ru" => ru,
+            "be" => be,
+            _ => en
+        };
+    }
 
     public async Task<IActionResult> Index(
         double? latitude,
@@ -25,7 +37,7 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
             Latitude = selectedLatitude,
             Longitude = selectedLongitude,
             LocationName = string.IsNullOrWhiteSpace(location)
-                ? (latitude.HasValue && longitude.HasValue ? "Current location" : DefaultLocationName)
+                ? (latitude.HasValue && longitude.HasValue ? T("Current location", "Текущее местоположение", "Бягучае месцазнаходжанне") : DefaultLocationName)
                 : location.Trim()
         };
 
@@ -55,18 +67,24 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
             {
                 if (latitude.HasValue && longitude.HasValue && string.IsNullOrWhiteSpace(location))
                 {
-                    model.LocationName = "Current location";
+                    model.LocationName = T("Current location", "Текущее местоположение", "Бягучае месцазнаходжанне");
                 }
             }
 
             if (model.CurrentWeather == null)
             {
-                model.ErrorMessage = "Weather data is currently unavailable for this location.";
+                model.ErrorMessage = T(
+                    "Weather data is currently unavailable for this location.",
+                    "Данные о погоде сейчас недоступны для этой локации.",
+                    "Дадзеныя пра надвор'е зараз недаступныя для гэтага месца.");
             }
         }
         catch
         {
-            model.ErrorMessage = "Weather data is currently unavailable for this location.";
+            model.ErrorMessage = T(
+                "Weather data is currently unavailable for this location.",
+                "Данные о погоде сейчас недоступны для этой локации.",
+                "Дадзеныя пра надвор'е зараз недаступныя для гэтага месца.");
         }
 
         return View(model);

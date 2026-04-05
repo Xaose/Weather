@@ -1,25 +1,51 @@
-﻿@model ErrorViewModel
-@{
-    ViewData["Title"] = "Error";
+﻿@using System.Globalization
+@model ErrorViewModel
+
+@functions {
+    public static string T(string en, string ru, string be)
+    {
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return language switch
+        {
+            "ru" => ru,
+            "be" => be,
+            _ => en
+        };
+    }
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+@{
+    ViewData["Title"] = T("Error", "Ошибка", "Памылка");
+}
+
+<h1 class="text-danger">@T("Error.", "Ошибка.", "Памылка.")</h1>
+<h2 class="text-danger">@T("An error occurred while processing your request.", "При обработке вашего запроса произошла ошибка.", "Падчас апрацоўкі вашага запыту адбылася памылка.")</h2>
 
 @if (Model.ShowRequestId)
 {
     <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
+        <strong>@T("Request ID:", "ID запроса:", "ID запыту:")</strong> <code>@Model.RequestId</code>
     </p>
 }
 
-<h3>Development Mode</h3>
+<h3>@T("Development Mode", "Режим разработки", "Рэжым распрацоўкі")</h3>
 <p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
+    @T("Switching to the Development environment displays detailed error information.", "Переключение в среду Development покажет подробную информацию об ошибке.", "Пераключэнне ў асяроддзе Development пакажа падрабязную інфармацыю пра памылку.")
 </p>
 <p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
+    @if (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru")
+    {
+        <strong>Режим Development не должен быть включен на рабочем сервере.</strong>
+        <text> Для локальной отладки задайте ASPNETCORE_ENVIRONMENT=Development и перезапустите приложение.</text>
+    }
+    else if (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "be")
+    {
+        <strong>Рэжым Development не павінен быць уключаны ў прадакшн-асяроддзі.</strong>
+        <text> Для лакальнай адладкі задайце ASPNETCORE_ENVIRONMENT=Development і перазапусціце прыкладанне.</text>
+    }
+    else
+    {
+        <strong>Development mode should not be enabled in production.</strong>
+        <text> For local debugging, set ASPNETCORE_ENVIRONMENT=Development and restart the app.</text>
+    }
 </p>

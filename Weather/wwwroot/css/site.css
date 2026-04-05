@@ -393,6 +393,56 @@ input {
     border-radius: 22px;
 }
 
+.weather-language-picker {
+    position: relative;
+}
+
+.weather-language-trigger {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+.weather-language-trigger::-webkit-details-marker {
+    display: none;
+}
+
+.weather-language-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    display: grid;
+    gap: 6px;
+    min-width: 72px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    background: rgba(18, 31, 60, 0.32);
+    box-shadow: 0 16px 40px rgba(15, 24, 48, 0.24);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.weather-language-option {
+    display: grid;
+    place-items: center;
+    padding: 8px 10px;
+    color: #eef4ff;
+    text-decoration: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.weather-language-option:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.weather-language-option--active {
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    background: rgba(255, 255, 255, 0.26);
+}
+
 .weather-status-panel,
 .weather-panel {
     border-radius: 32px;

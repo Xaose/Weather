@@ -1,6 +1,16 @@
-﻿@{
-    ViewData["Title"] = "Privacy Policy";
+﻿@using System.Globalization
+@{
+    var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    string T(string en, string ru, string be) => language switch
+    {
+        "ru" => ru,
+        "be" => be,
+        _ => en
+    };
+
+    ViewData["Title"] = T("Privacy Policy", "Политика конфиденциальности", "Палітыка прыватнасці");
 }
+
 <h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<p>@T("Use this page to detail your site's privacy policy.", "На этой странице можно описать политику конфиденциальности сайта.", "На гэтай старонцы можна апісаць палітыку прыватнасці сайта.")</p>

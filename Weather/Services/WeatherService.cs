@@ -1,18 +1,33 @@
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Weather.Models;
 
 namespace Weather.Services;
 
-public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfiguration configuration, IMemoryCache cache)
+public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfiguration configuration, IMemoryCache cache, IHttpContextAccessor httpContextAccessor)
 {
     private readonly string _apiKey = configuration["OpenWeather:ApiKey"] ?? throw new InvalidOperationException("OpenWeather API key is not configured.");
 
+    private string ResolveOpenWeatherLanguage()
+    {
+        var language = httpContextAccessor.HttpContext?.Features.Get<Microsoft.AspNetCore.Localization.IRequestCultureFeature>()?.RequestCulture.UICulture.TwoLetterISOLanguageName
+            ?? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+        return language switch
+        {
+            "ru" => "ru",
+            "be" => "ru",
+            _ => "en"
+        };
+    }
+
     public async Task<CurrentWeatherDto?> GetCurrentWeatherAsync(double latitude, double longitude, CancellationToken cancellationToken = default)
     {
-        var url = $"https://api.openweathermap.org/data/3.0/onecall?lat={latitude.ToString(CultureInfo.InvariantCulture)}&lon={longitude.ToString(CultureInfo.InvariantCulture)}&appid={_apiKey}&units=metric&lang=ru";
+        var language = ResolveOpenWeatherLanguage();
+        var url = $"https://api.openweathermap.org/data/3.0/onecall?lat={latitude.ToString(CultureInfo.InvariantCulture)}&lon={longitude.ToString(CultureInfo.InvariantCulture)}&appid={_apiKey}&units=metric&lang={language}";
         var response = await httpClientFactory.CreateClient().GetAsync(url, cancellationToken);
         
         if (response is null) throw new InvalidOperationException("Ошибка при получении данных о погоде."); 
@@ -38,23 +53,59 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
             WindSpeedKmh = current.WindSpeed * 3.6,
             WindSpeedMs = current.WindSpeed,
             WindDirectionDeg = current.WindDeg,
-            WindDirectionText = GetWindDirection(current.WindDeg)
+            WindDirectionText = GetWindDirection(current.WindDeg, language)
         };
     }
-    private static string GetWindDirection(int degrees)
-    {
-        return degrees switch
-        {
-            >= 337 => "Север",
-            < 22 => "Север",
 
-            >= 22 and < 67 => "СВ",
-            >= 67 and < 112 => "Восток",
-            >= 112 and < 157 => "ЮВ",
-            >= 157 and < 202 => "Юг",
-            >= 202 and < 247 => "ЮЗ",
-            >= 247 and < 292 => "Запад",
-            >= 292 and < 337 => "СЗ"
+    private static string GetWindDirection(int degrees, string language)
+    {
+        var directionCode = degrees switch
+        {
+            >= 337 or < 22 => "N",
+            >= 22 and < 67 => "NE",
+            >= 67 and < 112 => "E",
+            >= 112 and < 157 => "SE",
+            >= 157 and < 202 => "S",
+            >= 202 and < 247 => "SW",
+            >= 247 and < 292 => "W",
+            _ => "NW"
+        };
+
+        return language switch
+        {
+            "ru" => directionCode switch
+            {
+                "N" => "Север",
+                "NE" => "СВ",
+                "E" => "Восток",
+                "SE" => "ЮВ",
+                "S" => "Юг",
+                "SW" => "ЮЗ",
+                "W" => "Запад",
+                _ => "СЗ"
+            },
+            "be" => directionCode switch
+            {
+                "N" => "Поўнач",
+                "NE" => "ПнУсход",
+                "E" => "Усход",
+                "SE" => "ПдУсход",
+                "S" => "Поўдзень",
+                "SW" => "ПдЗахад",
+                "W" => "Захад",
+                _ => "ПнЗахад"
+            },
+            _ => directionCode switch
+            {
+                "N" => "North",
+                "NE" => "NE",
+                "E" => "East",
+                "SE" => "SE",
+                "S" => "South",
+                "SW" => "SW",
+                "W" => "West",
+                _ => "NW"
+            }
         };
     }
 
@@ -64,6 +115,7 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
         CancellationToken cancellationToken = default)
     {
         var client = httpClientFactory.CreateClient();
+        var language = ResolveOpenWeatherLanguage();
 
         var tasks = Enumerable.Range(0,7).Select(async i =>
         {
@@ -75,7 +127,7 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
 
             var latKey = Math.Round(latitude,3).ToString(CultureInfo.InvariantCulture);
             var lonKey = Math.Round(longitude,3).ToString(CultureInfo.InvariantCulture);
-            var cacheKey = $"day-summary:{latKey}:{lonKey}:{dateStr}";
+            var cacheKey = $"day-summary:{latKey}:{lonKey}:{language}:{dateStr}";
 
             var response = await cache.GetOrCreateAsync(cacheKey, async entry =>
             {
@@ -86,7 +138,7 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
                     $"?lat={latitude.ToString(CultureInfo.InvariantCulture)}" +
                     $"&lon={longitude.ToString(CultureInfo.InvariantCulture)}" +
                     $"&date={dateStr}" +
-                    $"&appid={_apiKey}&units=metric&lang=ru";
+                    $"&appid={_apiKey}&units=metric&lang={language}";
 
                 return await client.GetFromJsonAsync<DaySummaryResponse>(url, cancellationToken);
             });
@@ -123,10 +175,11 @@ public async Task<HourlyForecastDto?> GetDailyForecastAsync(
         CancellationToken cancellationToken = default)
     {
         stepHours = Math.Clamp(stepHours, 1, 3);
+        var language = ResolveOpenWeatherLanguage();
         var latKey = Math.Round(latitude,3).ToString(CultureInfo.InvariantCulture);
         var lonKey = Math.Round(longitude,3).ToString(CultureInfo.InvariantCulture);
         var bucket = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 600;
-        var cacheKey = $"hourly:{latKey}:{lonKey}:{stepHours}:{bucket}";
+        var cacheKey = $"hourly:{latKey}:{lonKey}:{language}:{stepHours}:{bucket}";
         var data = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
@@ -136,7 +189,7 @@ public async Task<HourlyForecastDto?> GetDailyForecastAsync(
                 $"?lat={latitude.ToString(CultureInfo.InvariantCulture)}" +
                 $"&lon={longitude.ToString(CultureInfo.InvariantCulture)}" +
                 $"&exclude=current,minutely,daily,alerts" +
-                $"&appid={_apiKey}&units=metric&lang=ru";
+                $"&appid={_apiKey}&units=metric&lang={language}";
 
             return await httpClientFactory.CreateClient()
                 .GetFromJsonAsync<HourlyOneCallResponse>(url, cancellationToken);

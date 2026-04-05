@@ -4,33 +4,51 @@
 @functions {
     public static string FormatTemperature(double temperature) => $"{Math.Round(temperature):0}°";
 
-    public static string FormatDayLabel(DateTime date, int index) => index == 0
-        ? "Today"
-        : date.ToString("ddd", CultureInfo.InvariantCulture);
+    public static string FormatDayLabel(DateTime date, int index, string todayLabel) => index == 0
+        ? todayLabel
+        : date.ToString("ddd", CultureInfo.CurrentUICulture);
 
     public static string FormatHourLabel(DateTime date) => date
-        .ToString("htt", CultureInfo.InvariantCulture)
+        .ToString("htt", CultureInfo.CurrentUICulture)
         .Replace(" ", "")
         .ToLowerInvariant();
+
+    public static string T(string en, string ru, string be)
+    {
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return language switch
+        {
+            "ru" => ru,
+            "be" => be,
+            _ => en
+        };
+    }
 }
 
 @{
-    ViewData["Title"] = "Forecast Dashboard";
+    ViewData["Title"] = T("Forecast Dashboard", "Погодная панель", "Панэль надвор'я");
 
     var currentWeather = Model.CurrentWeather;
     var hourlyForecasts = Model.HourlyForecast.HourlyForecasts.Take(5).ToList();
     var weeklyForecasts = Model.WeeklyForecast.DailyForecasts.Take(7).ToList();
     var todayForecast = weeklyForecasts.FirstOrDefault();
     var locationDisplayName = string.IsNullOrWhiteSpace(Model.LocationDisplayName)
-        ? "Select a location"
+        ? T("Select a location", "Выберите локацию", "Абярыце лакацыю")
         : Model.LocationDisplayName;
 
     var currentHour = DateTime.Now.Hour;
     var greeting = currentHour < 12
-        ? "Good morning"
+        ? T("Good morning", "Доброе утро", "Добрай раніцы")
         : currentHour < 18
-            ? "Good afternoon"
-            : "Good evening";
+            ? T("Good afternoon", "Добрый день", "Добры дзень")
+            : T("Good evening", "Добрый вечер", "Добры вечар");
+
+    var currentLanguageCode = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToUpperInvariant();
+    var currentLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+    var isEn = currentLanguage == "en";
+    var isRu = currentLanguage == "ru";
+    var isBe = currentLanguage == "be";
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <div class="weather-dashboard">
@@ -56,9 +74,9 @@
         <section class="weather-dashboard-main">
             <header class="weather-dashboard-header">
                 <div class="weather-dashboard-copy">
-                    <p class="weather-dashboard-kicker">Live weather</p>
+                    <p class="weather-dashboard-kicker">@T("Live weather", "Погода онлайн", "Надвор'е анлайн")</p>
                     <h1 class="weather-dashboard-title">@greeting</h1>
-                    <p class="weather-dashboard-subtitle">Track current conditions, today’s details, and the next week in one place.</p>
+                    <p class="weather-dashboard-subtitle">@T("Track current conditions, today details, and the next week in one place.", "Отслеживайте текущие условия, детали на сегодня и прогноз на неделю в одном месте.", "Сачыце за бягучымі ўмовамі, падрабязнасцямі на сёння і прагнозам на тыдзень у адным месцы.")</p>
                 </div>
 
                 <div class="weather-dashboard-actions">
@@ -72,8 +90,8 @@
                                     <path d="M10.5 4a6.5 6.5 0 1 0 4.09 11.56l4.42 4.43 1.41-1.42-4.42-4.42A6.5 6.5 0 0 0 10.5 4Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z"></path>
                                 </svg>
                             </span>
-                            <input class="weather-search-input" type="search" name="location" value="@locationDisplayName" placeholder="Search your location" autocomplete="off" spellcheck="false" data-location-search>
-                            <button class="weather-location-button" type="button" aria-label="Use current location" data-current-location>
+                            <input class="weather-search-input" type="search" name="location" value="@locationDisplayName" placeholder="@T("Search your location", "Введите город", "Увядзіце горад")" autocomplete="off" spellcheck="false" data-location-search>
+                            <button class="weather-location-button" type="button" aria-label="@T("Use current location", "Использовать текущее местоположение", "Выкарыстаць бягучае месцазнаходжанне")" data-current-location>
                                 <svg viewBox="0 0 24 24" focusable="false">
                                     <path d="M12 2a1 1 0 0 1 1 1v1.07a8 8 0 0 1 6.93 6.93H21a1 1 0 1 1 0 2h-1.07A8 8 0 0 1 13 19.93V21a1 1 0 1 1-2 0v-1.07A8 8 0 0 1 4.07 13H3a1 1 0 1 1 0-2h1.07A8 8 0 0 1 11 4.07V3a1 1 0 0 1 1-1Zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"></path>
                                 </svg>
@@ -83,16 +101,23 @@
                         <div class="weather-search-results" data-location-results hidden></div>
                     </form>
 
-                    <div class="weather-profile-badge">WS</div>
+                    <details class="weather-language-picker">
+                        <summary class="weather-profile-badge weather-language-trigger" aria-label="@T("Change language", "Сменить язык", "Змяніць мову")">@currentLanguageCode</summary>
+                        <div class="weather-language-menu">
+                            <a class="weather-language-option @(isEn ? "weather-language-option--active" : "")" aria-current="@(isEn ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "en", returnUrl })">EN</a>
+                            <a class="weather-language-option @(isRu ? "weather-language-option--active" : "")" aria-current="@(isRu ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "ru", returnUrl })">RU</a>
+                            <a class="weather-language-option @(isBe ? "weather-language-option--active" : "")" aria-current="@(isBe ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "be", returnUrl })">BY</a>
+                        </div>
+                    </details>
                 </div>
             </header>
 
             @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
             {
                 <section class="weather-panel weather-status-panel">
-                    <p class="weather-status-label">Unable to load forecast</p>
+                    <p class="weather-status-label">@T("Unable to load forecast", "Не удалось загрузить прогноз", "Не атрымалася загрузіць прагноз")</p>
                     <h2 class="weather-status-title">@Model.ErrorMessage</h2>
-                    <p class="weather-status-copy">Try another location from the search field, or use the current-location button to refresh the dashboard.</p>
+                    <p class="weather-status-copy">@T("Try another location from the search field, or use the current-location button to refresh the dashboard.", "Попробуйте другой город в строке поиска или используйте кнопку текущей геолокации, чтобы обновить панель.", "Паспрабуйце іншы горад у пошуку або кнопку бягучай геалакацыі, каб абнавіць панэль.")</p>
                 </section>
             }
             else
@@ -116,8 +141,8 @@
                                 }
 
                                 <div>
-                                    <p class="weather-current-day">@DateTime.Now.ToString("dddd", CultureInfo.InvariantCulture)</p>
-                                    <p class="weather-current-date">@DateTime.Now.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</p>
+                                    <p class="weather-current-day">@DateTime.Now.ToString("dddd", CultureInfo.CurrentUICulture)</p>
+                                    <p class="weather-current-date">@DateTime.Now.ToString("dd MMM yyyy", CultureInfo.CurrentUICulture)</p>
                                 </div>
                             </div>
 
@@ -125,10 +150,10 @@
                                 <p class="weather-current-temperature">@FormatTemperature(currentWeather?.TemperatureC ?? 0)</p>
                                 @if (todayForecast != null)
                                 {
-                                    <p class="weather-current-range">@FormatTemperature(todayForecast.DayTemperatureC) / @FormatTemperature(todayForecast.NightTemperatureC)</p>
+                                    <p class='weather-current-range'>@FormatTemperature(todayForecast.DayTemperatureC) / @FormatTemperature(todayForecast.NightTemperatureC)</p>
                                 }
-                                <p class="weather-current-condition">@(string.IsNullOrWhiteSpace(currentWeather?.Description) ? "Live conditions" : currentWeather.Description)</p>
-                                <p class="weather-current-feels-like">Feels like @FormatTemperature(currentWeather?.FeelsLike ?? currentWeather?.TemperatureC ?? 0)</p>
+                                <p class="weather-current-condition">@(string.IsNullOrWhiteSpace(currentWeather?.Description) ? T("Live conditions", "Текущие условия", "Бягучыя ўмовы") : currentWeather.Description)</p>
+                                <p class="weather-current-feels-like">@T("Feels like", "Ощущается как", "Адчуваецца як") @FormatTemperature(currentWeather?.FeelsLike ?? currentWeather?.TemperatureC ?? 0)</p>
                             </div>
                         </div>
                     </section>
@@ -136,32 +161,32 @@
                     <section class="weather-panel weather-highlights-panel">
                         <div class="weather-section-heading">
                             <div>
-                                <p class="weather-section-kicker">Today’s</p>
-                                <h2 class="weather-section-title">Highlights</h2>
+                                <p class="weather-section-kicker">@T("Today", "Сегодня", "Сёння")</p>
+                                <h2 class="weather-section-title">@T("Highlights", "Показатели", "Паказчыкі")</h2>
                             </div>
-                            <span class="weather-section-tag">Updated live</span>
+                            <span class="weather-section-tag">@T("Updated live", "Обновляется в реальном времени", "Абнаўляецца ў рэальным часе")</span>
                         </div>
 
                         <div class="weather-highlight-grid">
                             <article class="weather-highlight-card">
-                                <p class="weather-highlight-label">Wind status</p>
+                                <p class="weather-highlight-label">@T("Wind status", "Ветер", "Вецер")</p>
                                 <p class="weather-highlight-value">@Math.Round(currentWeather?.WindSpeedKmh ?? 0, 1) km/h</p>
-                                <p class="weather-highlight-meta">@(currentWeather?.WindDirectionText ?? "Calm")</p>
+                                <p class="weather-highlight-meta">@(currentWeather?.WindDirectionText ?? T("Calm", "Штиль", "Ціха"))</p>
                             </article>
                             <article class="weather-highlight-card">
-                                <p class="weather-highlight-label">Humidity</p>
+                                <p class="weather-highlight-label">@T("Humidity", "Влажность", "Вільготнасць")</p>
                                 <p class="weather-highlight-value">@(currentWeather?.Humidity ?? 0)%</p>
-                                <p class="weather-highlight-meta">Indoor comfort snapshot</p>
+                                <p class="weather-highlight-meta">@T("Indoor comfort snapshot", "Оценка комфорта", "Ацэнка камфорту")</p>
                             </article>
                             <article class="weather-highlight-card">
-                                <p class="weather-highlight-label">Pressure</p>
+                                <p class="weather-highlight-label">@T("Pressure", "Давление", "Ціск")</p>
                                 <p class="weather-highlight-value">@(currentWeather?.PressureMmHg ?? 0) mm</p>
                                 <p class="weather-highlight-meta">@(currentWeather?.PressureHpa ?? 0) hPa</p>
                             </article>
                             <article class="weather-highlight-card">
-                                <p class="weather-highlight-label">Feels like</p>
+                                <p class="weather-highlight-label">@T("Feels like", "Ощущается как", "Адчуваецца як")</p>
                                 <p class="weather-highlight-value">@FormatTemperature(currentWeather?.FeelsLike ?? currentWeather?.TemperatureC ?? 0)</p>
-                                <p class="weather-highlight-meta">@(currentWeather?.Condition ?? "Current conditions")</p>
+                                <p class="weather-highlight-meta">@(currentWeather?.Condition ?? T("Current conditions", "Текущие условия", "Бягучыя ўмовы"))</p>
                             </article>
                         </div>
                     </section>
@@ -169,16 +194,16 @@
                     <section class="weather-panel weather-hourly-panel">
                         <div class="weather-section-heading">
                             <div>
-                                <p class="weather-section-kicker">Today’s</p>
-                                <h2 class="weather-section-title">Timeline</h2>
+                                <p class="weather-section-kicker">@T("Today", "Сегодня", "Сёння")</p>
+                                <h2 class="weather-section-title">@T("Timeline", "Почасовой прогноз", "Пагадзінны прагноз")</h2>
                             </div>
-                            <span class="weather-section-tag">Next @hourlyForecasts.Count updates</span>
+                            <span class="weather-section-tag">@T("Next", "Следующие", "Наступныя") @hourlyForecasts.Count @T("updates", "обновлений", "абнаўленняў")</span>
                         </div>
 
                         <div class="weather-hourly-list">
                             @if (hourlyForecasts.Count == 0)
                             {
-                                <p class="weather-empty-state">No hourly forecast is available right now.</p>
+                                <p class="weather-empty-state">@T("No hourly forecast is available right now.", "Почасовой прогноз сейчас недоступен.", "Пагадзінны прагноз зараз недаступны.")</p>
                             }
                             else
                             {
@@ -191,7 +216,7 @@
                                             <img class="weather-hourly-icon" src="@hourlyForecast.IconUrl" alt="@hourlyForecast.Description">
                                         }
                                         <p class="weather-hourly-temperature">@FormatTemperature(hourlyForecast.TemperatureC)</p>
-                                        <p class="weather-hourly-rain">@hourlyForecast.PrecipitationProbabilityPercent% rain</p>
+                                        <p class="weather-hourly-rain">@hourlyForecast.PrecipitationProbabilityPercent% @T("rain", "дождь", "дождж")</p>
                                     </article>
                                 }
                             }
@@ -201,16 +226,16 @@
                     <section class="weather-panel weather-weekly-panel">
                         <div class="weather-section-heading">
                             <div>
-                                <p class="weather-section-kicker">Extended</p>
-                                <h2 class="weather-section-title">7 day forecast</h2>
+                                <p class="weather-section-kicker">@T("Extended", "Расширенный", "Пашыраны")</p>
+                                <h2 class="weather-section-title">@T("7 day forecast", "Прогноз на 7 дней", "Прагноз на 7 дзён")</h2>
                             </div>
-                            <span class="weather-section-tag">@weeklyForecasts.Count days</span>
+                            <span class="weather-section-tag">@weeklyForecasts.Count @T("days", "дней", "дзён")</span>
                         </div>
 
                         <div class="weather-weekly-list">
                             @if (weeklyForecasts.Count == 0)
                             {
-                                <p class="weather-empty-state">No weekly forecast is available right now.</p>
+                                <p class="weather-empty-state">@T("No weekly forecast is available right now.", "Недельный прогноз сейчас недоступен.", "Тыднёвы прагноз зараз недаступны.")</p>
                             }
                             else
                             {
@@ -219,10 +244,10 @@
                                     var dailyForecast = weeklyForecasts[index];
 
                                     <article class="weather-weekly-card">
-                                        <p class="weather-weekly-day">@FormatDayLabel(dailyForecast.Date, index)</p>
+                                        <p class="weather-weekly-day">@FormatDayLabel(dailyForecast.Date, index, T("Today", "Сегодня", "Сёння"))</p>
                                         <p class="weather-weekly-high">@FormatTemperature(dailyForecast.DayTemperatureC)</p>
-                                        <p class="weather-weekly-low">Night @FormatTemperature(dailyForecast.NightTemperatureC)</p>
-                                        <p class="weather-weekly-wind">Wind @Math.Round(dailyForecast.WindSpeedKmh) km/h</p>
+                                        <p class="weather-weekly-low">@T("Night", "Ночь", "Ноч") @FormatTemperature(dailyForecast.NightTemperatureC)</p>
+                                        <p class="weather-weekly-wind">@T("Wind", "Ветер", "Вецер") @Math.Round(dailyForecast.WindSpeedKmh) km/h</p>
                                     </article>
                                 }
                             }
