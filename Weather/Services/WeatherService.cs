@@ -67,7 +67,10 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
 
         var tasks = Enumerable.Range(0,7).Select(async i =>
         {
-            var date = DateTime.UtcNow.Date.AddDays(i); // если нужны прошедшие дни: AddDays(-i)
+            var date = DateTime
+                .UtcNow
+                .Date
+                .AddDays(i);
             var dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
             var latKey = Math.Round(latitude,3).ToString(CultureInfo.InvariantCulture);
@@ -113,6 +116,67 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
                 .ToList()
         };
     }
+public async Task<HourlyForecastDto> GetDailyForecastAsync(
+        double latitude,
+        double longitude,
+        int stepHours = 1,
+        CancellationToken cancellationToken = default)
+    {
+        stepHours = Math.Clamp(stepHours, 1, 3);
+        var latKey = Math.Round(latitude,3).ToString(CultureInfo.InvariantCulture);
+        var lonKey = Math.Round(longitude,3).ToString(CultureInfo.InvariantCulture);
+        var bucket = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 600;
+        var cacheKey = $"hourly:{latKey}:{lonKey}:{stepHours}:{bucket}";
+        var data = await cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+
+            var url =
+                $"https://api.openweathermap.org/data/3.0/onecall" +
+                $"?lat={latitude.ToString(CultureInfo.InvariantCulture)}" +
+                $"&lon={longitude.ToString(CultureInfo.InvariantCulture)}" +
+                $"&exclude=current,minutely,daily,alerts" +
+                $"&appid={_apiKey}&units=metric&lang=ru";
+
+            return await httpClientFactory.CreateClient()
+                .GetFromJsonAsync<HourlyOneCallResponse>(url, cancellationToken);
+        });
+        if (data?.Hourly == null || data.Hourly.Count == 0) return null;
+        
+        var now = DateTimeOffset.UtcNow;
+        var end = now.AddHours(24);
+        var entries = data.Hourly.Where(h =>
+        {
+            var t = DateTimeOffset.FromUnixTimeSeconds(h.Dt);
+            return t >= now && t <= end;
+        })
+        .OrderBy(h => h.Dt)
+        .Where((_ , index) => index % stepHours == 0)
+        .Select(h =>
+        {
+            var weather = h.Weather.FirstOrDefault();
+            return new HourlyForecastEntryDto
+            {
+                TimeUts = DateTimeOffset.FromUnixTimeSeconds(h.Dt).DateTime,
+                TemperatureC = h.Temp,
+                TemperatureF = h.Temp * 9 / 5 + 32,
+                PrecipitationProbabilityPercent = (int)(h.Pop * 100),
+                Condition = weather?.Main,
+                Description = weather?.Description,
+                IconUrl = weather != null ? $"https://openweathermap.org/img/wn/{weather.Icon}@2x.png" : null,
+                WindSpeedMs = h.WindSpeed,
+                WindSpeedKmh = h.WindSpeed * 3.6
+            };
+        })
+        .ToList();
+
+        return new HourlyForecastDto
+        {
+            TimeZone = data.Timezone,
+            HourlyForecasts = entries
+        };
+    }
+    
     
     private sealed class DaySummaryResponse
     {
@@ -147,6 +211,26 @@ public partial class WeatherService(IHttpClientFactory httpClientFactory, IConfi
         public double Speed { get; set; }
     }
     
+    private sealed class HourlyOneCallResponse{
+        [JsonPropertyName("timezone")]
+        public string Timezone { get; set; } = "";
+
+        [JsonPropertyName("hourly")]
+        public List<HourlyEntry> Hourly { get; set; } = new();
+    }
+
+    private sealed class HourlyEntry
+    {
+        [JsonPropertyName("dt")] public long Dt { get; set; }
+
+        [JsonPropertyName("temp")] public double Temp { get; set; }
+
+        [JsonPropertyName("pop")] public double Pop { get; set; }
+
+        [JsonPropertyName("wind_speed")] public double WindSpeed { get; set; }
+
+        [JsonPropertyName("weather")] public List<WeatherInfo> Weather { get; set; } = new();
+    }
 }
 
 public class WeatherResponse
