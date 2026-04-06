@@ -48,6 +48,8 @@
     var isEn = currentLanguage == "en";
     var isRu = currentLanguage == "ru";
     var isBe = currentLanguage == "be";
+    var overviewUrl = Url.Action("Index", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
+    var timelineUrl = Url.Action("Timeline", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
 }
 
@@ -58,12 +60,12 @@
                 <span class="weather-rail-glyph weather-rail-glyph--menu"></span>
             </button>
             <div class="weather-rail-stack">
-                <button class="weather-rail-button weather-rail-button--active" type="button" aria-label="Overview">
+                <a class="weather-rail-button weather-rail-button--active" href="@overviewUrl" aria-label="Overview">
                     <span class="weather-rail-glyph weather-rail-glyph--grid"></span>
-                </button>
-                <button class="weather-rail-button" type="button" aria-label="Timeline">
+                </a>
+                <a class="weather-rail-button" href="@timelineUrl" aria-label="Timeline">
                     <span class="weather-rail-glyph weather-rail-glyph--timeline"></span>
-                </button>
+                </a>
                 <button class="weather-rail-button" type="button" aria-label="Settings">
                     <span class="weather-rail-glyph weather-rail-glyph--tune"></span>
                 </button>

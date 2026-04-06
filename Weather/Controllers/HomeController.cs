@@ -29,6 +29,26 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
         string? location,
         CancellationToken cancellationToken = default)
     {
+        var model = await BuildDashboardModelAsync(latitude, longitude, location, cancellationToken);
+        return View(model);
+    }
+
+    public async Task<IActionResult> Timeline(
+        double? latitude,
+        double? longitude,
+        string? location,
+        CancellationToken cancellationToken = default)
+    {
+        var model = await BuildDashboardModelAsync(latitude, longitude, location, cancellationToken);
+        return View(model);
+    }
+
+    private async Task<HomeDashboardViewModel> BuildDashboardModelAsync(
+        double? latitude,
+        double? longitude,
+        string? location,
+        CancellationToken cancellationToken)
+    {
         var selectedLatitude = latitude ?? DefaultLatitude;
         var selectedLongitude = longitude ?? DefaultLongitude;
 
@@ -87,7 +107,7 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
                 "Дадзеныя пра надвор'е зараз недаступныя для гэтага месца.");
         }
 
-        return View(model);
+        return model;
     }
 
     public IActionResult Privacy()

@@ -1,0 +1,508 @@
+@model Weather.Models.HomeDashboardViewModel
+
+@functions {
+    public sealed class ChartPoint
+    {
+        public double X { get; init; }
+        public double Y { get; init; }
+    }
+
+    public sealed class ChartBar
+    {
+        public double X { get; init; }
+        public double Y { get; init; }
+        public double Width { get; init; }
+        public double Height { get; init; }
+    }
+
+    public sealed class RangeBand
+    {
+        public double X { get; init; }
+        public double Width { get; init; }
+    }
+
+    public static string FormatTemperature(double temperature) => $"{Math.Round(temperature):0}°";
+
+    public static string FormatHourLabel(DateTime date) => date
+        .ToString("htt", CultureInfo.CurrentUICulture)
+        .Replace(" ", "")
+        .ToLowerInvariant();
+
+    public static string FormatDayLabel(DateTime date, int index, string todayLabel) => index == 0
+        ? todayLabel
+        : date.ToString("ddd", CultureInfo.CurrentUICulture);
+
+    public static string FormatDelta(double value)
+    {
+        var roundedValue = Math.Round(value);
+        return roundedValue > 0 ? $"+{roundedValue:0}°" : $"{roundedValue:0}°";
+    }
+
+    public static string T(string en, string ru, string be)
+    {
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return language switch
+        {
+            "ru" => ru,
+            "be" => be,
+            _ => en
+        };
+    }
+
+    public static double Clamp(double value, double min, double max) => Math.Min(max, Math.Max(min, value));
+
+    public static string Svg(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    public static List<ChartPoint> BuildLinePoints(IReadOnlyList<double> values, double width, double height, double paddingX = 24, double paddingY = 22)
+    {
+        var points = new List<ChartPoint>();
+        if (values.Count == 0)
+        {
+            return points;
+        }
+
+        var minimumValue = values.Min();
+        var maximumValue = values.Max();
+        var valueRange = Math.Max(maximumValue - minimumValue, 1);
+        var usableWidth = width - (paddingX * 2);
+        var usableHeight = height - (paddingY * 2);
+
+        for (var index = 0; index < values.Count; index++)
+        {
+            var x = values.Count == 1
+                ? width / 2
+                : paddingX + (usableWidth * index / (values.Count - 1));
+            var normalizedValue = (values[index] - minimumValue) / valueRange;
+            var y = height - paddingY - (normalizedValue * usableHeight);
+
+            points.Add(new ChartPoint
+            {
+                X = x,
+                Y = y
+            });
+        }
+
+        return points;
+    }
+
+    public static string BuildPolyline(List<ChartPoint> points) => string.Join(" ", points.Select(point => $"{point.X:0.##},{point.Y:0.##}"));
+
+    public static List<ChartBar> BuildBars(IReadOnlyList<int> values, double width, double height, double paddingX = 18, double paddingTop = 18, double paddingBottom = 30, double gap = 10)
+    {
+        var bars = new List<ChartBar>();
+        if (values.Count == 0)
+        {
+            return bars;
+        }
+
+        var maximumValue = Math.Max(values.Max(), 1);
+        var availableWidth = width - (paddingX * 2);
+        var barWidth = values.Count == 1
+            ? availableWidth
+            : (availableWidth - (gap * (values.Count - 1))) / values.Count;
+        var chartBaseLine = height - paddingBottom;
+        var usableHeight = chartBaseLine - paddingTop;
+
+        for (var index = 0; index < values.Count; index++)
+        {
+            var barHeight = usableHeight * values[index] / maximumValue;
+
+            bars.Add(new ChartBar
+            {
+                X = paddingX + (index * (barWidth + gap)),
+                Y = chartBaseLine - barHeight,
+                Width = barWidth,
+                Height = barHeight
+            });
+        }
+
+        return bars;
+    }
+
+    public static List<RangeBand> BuildRangeBands(IReadOnlyList<Weather.Models.DailyForecastDto> forecasts, double width, double paddingX = 18)
+    {
+        var bands = new List<RangeBand>();
+        if (forecasts.Count == 0)
+        {
+            return bands;
+        }
+
+        var minimumValue = forecasts.Min(forecast => forecast.NightTemperatureC);
+        var maximumValue = forecasts.Max(forecast => forecast.DayTemperatureC);
+        var valueRange = Math.Max(maximumValue - minimumValue, 1);
+        var usableWidth = width - (paddingX * 2);
+
+        foreach (var forecast in forecasts)
+        {
+            var startOffset = (forecast.NightTemperatureC - minimumValue) / valueRange;
+            var endOffset = (forecast.DayTemperatureC - minimumValue) / valueRange;
+
+            bands.Add(new RangeBand
+            {
+                X = paddingX + (usableWidth * startOffset),
+                Width = Math.Max(usableWidth * (endOffset - startOffset), 12)
+            });
+        }
+
+        return bands;
+    }
+}
+
+@{
+    ViewData["Title"] = T("Weather Timeline", "Погодная хронология", "Храналогія надвор'я");
+
+    var currentWeather = Model.CurrentWeather;
+    var hourlyForecasts = Model.HourlyForecast.HourlyForecasts.Take(8).ToList();
+    var weeklyForecasts = Model.WeeklyForecast.DailyForecasts.Take(7).ToList();
+    var locationDisplayName = string.IsNullOrWhiteSpace(Model.LocationDisplayName)
+        ? T("Select a location", "Выберите локацию", "Абярыце лакацыю")
+        : Model.LocationDisplayName;
+
+    var currentLanguageCode = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToUpperInvariant();
+    var currentLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+    var isEn = currentLanguage == "en";
+    var isRu = currentLanguage == "ru";
+    var isBe = currentLanguage == "be";
+    var overviewUrl = Url.Action("Index", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
+    var timelineUrl = Url.Action("Timeline", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+
+    var temperatureValues = hourlyForecasts.Select(forecast => forecast.TemperatureC).ToList();
+    var windValues = hourlyForecasts.Select(forecast => forecast.WindSpeedKmh).ToList();
+    var precipitationValues = hourlyForecasts.Select(forecast => forecast.PrecipitationProbabilityPercent).ToList();
+    var temperaturePoints = BuildLinePoints(temperatureValues, 360, 180);
+    var windPoints = BuildLinePoints(windValues, 360, 160, 24, 20);
+    var precipitationBars = BuildBars(precipitationValues, 360, 150);
+    var weeklyBands = BuildRangeBands(weeklyForecasts, 260);
+
+    var averageHourlyTemperature = temperatureValues.Count == 0 ? 0 : temperatureValues.Average();
+    var warmestHourlyTemperature = temperatureValues.Count == 0 ? 0 : temperatureValues.Max();
+    var strongestWind = windValues.Count == 0 ? 0 : windValues.Max();
+    var peakRainChance = precipitationValues.Count == 0 ? 0 : precipitationValues.Max();
+    var humidity = currentWeather?.Humidity ?? 0;
+    var humidityCircumference = 2 * Math.PI * 34;
+    var humidityOffset = humidityCircumference * (1 - Clamp(humidity / 100d, 0, 1));
+    var pressureValue = currentWeather?.PressureHpa ?? 0;
+    var pressureFillWidth = 136 * Clamp((pressureValue - 960d) / 80d, 0, 1);
+    var actualTemperature = currentWeather?.TemperatureC ?? 0;
+    var feelsLikeTemperature = currentWeather?.FeelsLike ?? actualTemperature;
+    var comparisonMinimum = Math.Min(actualTemperature, feelsLikeTemperature);
+    var comparisonMaximum = Math.Max(actualTemperature, feelsLikeTemperature);
+    var comparisonRange = Math.Max(comparisonMaximum - comparisonMinimum, 1);
+    var actualBarHeight = 52 * ((actualTemperature - comparisonMinimum) / comparisonRange);
+    var feelsLikeBarHeight = 52 * ((feelsLikeTemperature - comparisonMinimum) / comparisonRange);
+    var comfortDelta = feelsLikeTemperature - actualTemperature;
+
+    var humidityLabel = humidity switch
+    {
+        < 35 => T("Dry air", "Сухой воздух", "Сухое паветра"),
+        > 70 => T("Heavy moisture", "Высокая влажность", "Высокая вільготнасць"),
+        _ => T("Balanced air", "Комфортная влажность", "Камфортная вільготнасць")
+    };
+
+    var pressureLabel = pressureValue switch
+    {
+        < 1005 => T("Softer pressure", "Пониженное давление", "Паніжаны ціск"),
+        > 1020 => T("Stable pressure", "Стабильное давление", "Стабільны ціск"),
+        _ => T("Normal pressure", "Нормальное давление", "Нармальны ціск")
+    };
+}
+
+<div class="weather-dashboard">
+    <div class="weather-dashboard-shell">
+        <aside class="weather-side-rail" aria-label="Dashboard navigation">
+            <button class="weather-rail-button weather-rail-button--menu" type="button" aria-label="Menu">
+                <span class="weather-rail-glyph weather-rail-glyph--menu"></span>
+            </button>
+            <div class="weather-rail-stack">
+                <a class="weather-rail-button" href="@overviewUrl" aria-label="Overview">
+                    <span class="weather-rail-glyph weather-rail-glyph--grid"></span>
+                </a>
+                <a class="weather-rail-button weather-rail-button--active" href="@timelineUrl" aria-label="Timeline">
+                    <span class="weather-rail-glyph weather-rail-glyph--timeline"></span>
+                </a>
+                <button class="weather-rail-button" type="button" aria-label="Settings">
+                    <span class="weather-rail-glyph weather-rail-glyph--tune"></span>
+                </button>
+            </div>
+            <div class="weather-rail-profile">W</div>
+        </aside>
+
+        <section class="weather-dashboard-main">
+            <header class="weather-dashboard-header">
+                <div class="weather-dashboard-copy">
+                    <p class="weather-dashboard-kicker">@T("Live weather", "Погода онлайн", "Надвор'е анлайн")</p>
+                    <h1 class="weather-dashboard-title">@T("Weather timeline", "Хронология погоды", "Храналогія надвор'я")</h1>
+                    <p class="weather-dashboard-subtitle">@T("See how temperature, rain, wind, and weekly ranges are moving across the day in a single visual view.", "Смотрите, как меняются температура, дождь, ветер и диапазоны недели в одном визуальном режиме.", "Глядзіце, як змяняюцца тэмпература, дождж, вецер і дыяпазоны тыдня ў адным візуальным рэжыме.")</p>
+                </div>
+
+                <div class="weather-dashboard-actions">
+                    <form class="weather-search-form" method="get" asp-action="Timeline" asp-controller="Home" novalidate>
+                        <input class="weather-search-coordinate" type="hidden" name="latitude" value="@Model.Latitude" data-location-latitude>
+                        <input class="weather-search-coordinate" type="hidden" name="longitude" value="@Model.Longitude" data-location-longitude>
+
+                        <div class="weather-search-input-shell">
+                            <span class="weather-search-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M10.5 4a6.5 6.5 0 1 0 4.09 11.56l4.42 4.43 1.41-1.42-4.42-4.42A6.5 6.5 0 0 0 10.5 4Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z"></path>
+                                </svg>
+                            </span>
+                            <input class="weather-search-input" type="search" name="location" value="@locationDisplayName" placeholder="@T("Search your location", "Введите город", "Увядзіце горад")" autocomplete="off" spellcheck="false" data-location-search>
+                            <button class="weather-location-button" type="button" aria-label="@T("Use current location", "Использовать текущее местоположение", "Выкарыстаць бягучае месцазнаходжанне")" data-current-location>
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 2a1 1 0 0 1 1 1v1.07a8 8 0 0 1 6.93 6.93H21a1 1 0 1 1 0 2h-1.07A8 8 0 0 1 13 19.93V21a1 1 0 1 1-2 0v-1.07A8 8 0 0 1 4.07 13H3a1 1 0 1 1 0-2h1.07A8 8 0 0 1 11 4.07V3a1 1 0 0 1 1-1Zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="weather-search-results" data-location-results hidden></div>
+                    </form>
+
+                    <details class="weather-language-picker">
+                        <summary class="weather-profile-badge weather-language-trigger" aria-label="@T("Change language", "Сменить язык", "Змяніць мову")">@currentLanguageCode</summary>
+                        <div class="weather-language-menu">
+                            <a class="weather-language-option @(isEn ? "weather-language-option--active" : "")" aria-current="@(isEn ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "en", returnUrl })">EN</a>
+                            <a class="weather-language-option @(isRu ? "weather-language-option--active" : "")" aria-current="@(isRu ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "ru", returnUrl })">RU</a>
+                            <a class="weather-language-option @(isBe ? "weather-language-option--active" : "")" aria-current="@(isBe ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "be", returnUrl })">BY</a>
+                        </div>
+                    </details>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <section class="weather-panel weather-status-panel">
+                    <p class="weather-status-label">@T("Unable to load forecast", "Не удалось загрузить прогноз", "Не атрымалася загрузіць прагноз")</p>
+                    <h2 class="weather-status-title">@Model.ErrorMessage</h2>
+                    <p class="weather-status-copy">@T("Try another location from the search field, or use the current-location button to refresh the dashboard.", "Попробуйте другой город в строке поиска или используйте кнопку текущей геолокации, чтобы обновить панель.", "Паспрабуйце іншы горад у пошуку або кнопку бягучай геалакацыі, каб абнавіць панэль.")</p>
+                </section>
+            }
+            else
+            {
+                <div class="weather-dashboard-grid weather-timeline-grid">
+                    <section class="weather-panel weather-timeline-temperature-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">@T("Next hours", "Следующие часы", "Наступныя гадзіны")</p>
+                                <h2 class="weather-section-title">@T("Temperature curve", "Температурная кривая", "Тэмпературная крывая")</h2>
+                            </div>
+                            <span class="weather-section-tag">@FormatTemperature(averageHourlyTemperature) @T("avg", "в среднем", "сярэдняе")</span>
+                        </div>
+
+                        @if (hourlyForecasts.Count == 0)
+                        {
+                            <p class="weather-empty-state weather-chart-empty">@T("No hourly chart data is available right now.", "Почасовые данные для графика сейчас недоступны.", "Пагадзінныя даныя для графіка зараз недаступныя.")</p>
+                        }
+                        else
+                        {
+                            <div class="weather-chart-shell">
+                                <svg class="weather-chart-svg" viewBox="0 0 360 180" role="img" aria-label="@T("Hourly temperature chart", "График почасовой температуры", "Графік пагадзіннай тэмпературы")">
+                                    <line class="weather-chart-guide" x1="24" y1="32" x2="336" y2="32"></line>
+                                    <line class="weather-chart-guide" x1="24" y1="90" x2="336" y2="90"></line>
+                                    <line class="weather-chart-guide" x1="24" y1="148" x2="336" y2="148"></line>
+                                    <polyline class="weather-chart-line weather-chart-line--temperature" points="@BuildPolyline(temperaturePoints)"></polyline>
+                                    @foreach (var point in temperaturePoints)
+                                    {
+                                        <circle class="weather-chart-point weather-chart-point--temperature" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="4"></circle>
+                                    }
+                                </svg>
+
+                                <div class="weather-chart-axis">
+                                    @foreach (var hourlyForecast in hourlyForecasts)
+                                    {
+                                        <div class="weather-chart-tick">
+                                            <span class="weather-chart-tick-label">@FormatHourLabel(hourlyForecast.TimeUts)</span>
+                                            <span class="weather-chart-tick-value">@FormatTemperature(hourlyForecast.TemperatureC)</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="weather-timeline-summary-grid">
+                                <article class="weather-highlight-card weather-timeline-summary-card">
+                                    <p class="weather-highlight-label">@T("Warmest point", "Максимум", "Максімум")</p>
+                                    <p class="weather-highlight-value">@FormatTemperature(warmestHourlyTemperature)</p>
+                                    <p class="weather-highlight-meta">@T("Highest projected temperature in the visible range.", "Самая высокая ожидаемая температура в видимом диапазоне.", "Найвышэйшая чаканая тэмпература ў бачным дыяпазоне.")</p>
+                                </article>
+                                <article class="weather-highlight-card weather-timeline-summary-card">
+                                    <p class="weather-highlight-label">@T("Current feel", "Сейчас ощущается", "Зараз адчуваецца")</p>
+                                    <p class="weather-highlight-value">@FormatTemperature(feelsLikeTemperature)</p>
+                                    <p class="weather-highlight-meta">@T("Compared with live air temperature.", "По сравнению с фактической температурой воздуха.", "У параўнанні з фактычнай тэмпературай паветра.")</p>
+                                </article>
+                            </div>
+                        }
+                    </section>
+
+                    <section class="weather-panel weather-timeline-atmosphere-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">@T("Live metrics", "Текущие метрики", "Бягучыя метрыкі")</p>
+                                <h2 class="weather-section-title">@T("Atmosphere board", "Атмосферная панель", "Атмасферная панэль")</h2>
+                            </div>
+                            <span class="weather-section-tag">@locationDisplayName</span>
+                        </div>
+
+                        <div class="weather-timeline-metric-grid">
+                            <article class="weather-highlight-card weather-visual-metric-card">
+                                <div class="weather-visual-metric-head">
+                                    <p class="weather-highlight-label">@T("Humidity", "Влажность", "Вільготнасць")</p>
+                                    <p class="weather-visual-metric-reading">@humidity%</p>
+                                </div>
+                                <div class="weather-ring-chart-wrap">
+                                    <svg class="weather-ring-chart" viewBox="0 0 96 96" role="img" aria-label="@T("Humidity level", "Уровень влажности", "Узровень вільготнасці")">
+                                        <circle class="weather-ring-track" cx="48" cy="48" r="34"></circle>
+                                        <circle class="weather-ring-progress" cx="48" cy="48" r="34" stroke-dasharray="@Svg(humidityCircumference)" stroke-dashoffset="@Svg(humidityOffset)"></circle>
+                                    </svg>
+                                </div>
+                                <p class="weather-highlight-meta">@humidityLabel</p>
+                            </article>
+
+                            <article class="weather-highlight-card weather-visual-metric-card">
+                                <div class="weather-visual-metric-head">
+                                    <p class="weather-highlight-label">@T("Pressure", "Давление", "Ціск")</p>
+                                    <p class="weather-visual-metric-reading">@pressureValue hPa</p>
+                                </div>
+                                <svg class="weather-meter-chart" viewBox="0 0 160 56" role="img" aria-label="@T("Pressure meter", "Шкала давления", "Шкала ціску")">
+                                    <rect class="weather-meter-track" x="12" y="24" width="136" height="10" rx="5"></rect>
+                                    <rect class="weather-meter-fill" x="12" y="24" width="@Svg(pressureFillWidth)" height="10" rx="5"></rect>
+                                    <circle class="weather-meter-thumb" cx="@Svg(12 + pressureFillWidth)" cy="29" r="6"></circle>
+                                </svg>
+                                <p class="weather-highlight-meta">@pressureLabel</p>
+                            </article>
+
+                            <article class="weather-highlight-card weather-visual-metric-card">
+                                <div class="weather-visual-metric-head">
+                                    <p class="weather-highlight-label">@T("Feels like", "Ощущается как", "Адчуваецца як")</p>
+                                    <p class="weather-visual-metric-reading">@FormatDelta(comfortDelta)</p>
+                                </div>
+                                <svg class="weather-compare-chart" viewBox="0 0 160 88" role="img" aria-label="@T("Temperature comparison", "Сравнение температуры", "Параўнанне тэмпературы")">
+                                    <line class="weather-compare-baseline" x1="24" y1="70" x2="136" y2="70"></line>
+                                    <rect class="weather-compare-bar weather-compare-bar--actual" x="42" y="@Svg(70 - actualBarHeight)" width="24" height="@Svg(actualBarHeight)" rx="12"></rect>
+                                    <rect class="weather-compare-bar weather-compare-bar--feel" x="92" y="@Svg(70 - feelsLikeBarHeight)" width="24" height="@Svg(feelsLikeBarHeight)" rx="12"></rect>
+                                </svg>
+                                <div class="weather-compare-legend">
+                                    <span>@FormatTemperature(actualTemperature)</span>
+                                    <span>@FormatTemperature(feelsLikeTemperature)</span>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="weather-panel weather-timeline-rhythm-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">@T("Rain and wind", "Дождь и ветер", "Дождж і вецер")</p>
+                                <h2 class="weather-section-title">@T("Weather rhythm", "Ритм погоды", "Рытм надвор'я")</h2>
+                            </div>
+                            <span class="weather-section-tag">@peakRainChance% @T("peak rain", "пик дождя", "пік дажджу")</span>
+                        </div>
+
+                        @if (hourlyForecasts.Count == 0)
+                        {
+                            <p class="weather-empty-state weather-chart-empty">@T("No wind or precipitation chart data is available right now.", "Данные по ветру и осадкам сейчас недоступны.", "Даныя пра вецер і ападкі зараз недаступныя.")</p>
+                        }
+                        else
+                        {
+                            <div class="weather-dual-chart-grid">
+                                <div class="weather-mini-chart-block">
+                                    <p class="weather-mini-chart-title">@T("Rain chance", "Вероятность дождя", "Верагоднасць дажджу")</p>
+                                    <svg class="weather-chart-svg weather-chart-svg--compact" viewBox="0 0 360 150" role="img" aria-label="@T("Precipitation chart", "График осадков", "Графік ападкаў")">
+                                        <line class="weather-chart-guide" x1="18" y1="120" x2="342" y2="120"></line>
+                                        @foreach (var bar in precipitationBars)
+                                        {
+                                            <rect class="weather-chart-bar" x="@Svg(bar.X)" y="@Svg(bar.Y)" width="@Svg(bar.Width)" height="@Svg(bar.Height)" rx="10"></rect>
+                                        }
+                                    </svg>
+                                    <div class="weather-chart-axis">
+                                        @for (var index = 0; index < hourlyForecasts.Count; index++)
+                                        {
+                                            <div class="weather-chart-tick">
+                                                <span class="weather-chart-tick-label">@FormatHourLabel(hourlyForecasts[index].TimeUts)</span>
+                                                <span class="weather-chart-tick-value">@precipitationValues[index]%</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="weather-mini-chart-block">
+                                    <p class="weather-mini-chart-title">@T("Wind speed", "Скорость ветра", "Хуткасць ветру")</p>
+                                    <svg class="weather-chart-svg weather-chart-svg--compact" viewBox="0 0 360 160" role="img" aria-label="@T("Wind chart", "График ветра", "Графік ветру")">
+                                        <line class="weather-chart-guide" x1="24" y1="24" x2="336" y2="24"></line>
+                                        <line class="weather-chart-guide" x1="24" y1="76" x2="336" y2="76"></line>
+                                        <line class="weather-chart-guide" x1="24" y1="128" x2="336" y2="128"></line>
+                                        <polyline class="weather-chart-line weather-chart-line--wind" points="@BuildPolyline(windPoints)"></polyline>
+                                        @foreach (var point in windPoints)
+                                        {
+                                            <circle class="weather-chart-point weather-chart-point--wind" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="4"></circle>
+                                        }
+                                    </svg>
+                                    <div class="weather-chart-axis">
+                                        @for (var index = 0; index < hourlyForecasts.Count; index++)
+                                        {
+                                            <div class="weather-chart-tick">
+                                                <span class="weather-chart-tick-label">@FormatHourLabel(hourlyForecasts[index].TimeUts)</span>
+                                                <span class="weather-chart-tick-value">@Math.Round(windValues[index]) km/h</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="weather-timeline-summary-strip">
+                                <article class="weather-highlight-card weather-timeline-summary-card">
+                                    <p class="weather-highlight-label">@T("Peak wind", "Пиковый ветер", "Пікавы вецер")</p>
+                                    <p class="weather-highlight-value">@Math.Round(strongestWind) km/h</p>
+                                    <p class="weather-highlight-meta">@(currentWeather?.WindDirectionText ?? T("Calm", "Штиль", "Ціха"))</p>
+                                </article>
+                                <article class="weather-highlight-card weather-timeline-summary-card">
+                                    <p class="weather-highlight-label">@T("Current weather", "Текущая погода", "Бягучае надвор'е")</p>
+                                    <p class="weather-highlight-value">@(string.IsNullOrWhiteSpace(currentWeather?.Description) ? T("Live conditions", "Текущие условия", "Бягучыя ўмовы") : currentWeather.Description)</p>
+                                    <p class="weather-highlight-meta">@FormatTemperature(actualTemperature)</p>
+                                </article>
+                            </div>
+                        }
+                    </section>
+
+                    <section class="weather-panel weather-timeline-week-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">@T("Extended", "Расширенный", "Пашыраны")</p>
+                                <h2 class="weather-section-title">@T("7 day range", "Диапазон на 7 дней", "Дыяпазон на 7 дзён")</h2>
+                            </div>
+                            <span class="weather-section-tag">@weeklyForecasts.Count @T("days", "дней", "дзён")</span>
+                        </div>
+
+                        @if (weeklyForecasts.Count == 0)
+                        {
+                            <p class="weather-empty-state weather-chart-empty">@T("No weekly range data is available right now.", "Данные по диапазону недели сейчас недоступны.", "Даныя па дыяпазоне тыдня зараз недаступныя.")</p>
+                        }
+                        else
+                        {
+                            <div class="weather-range-list">
+                                @for (var index = 0; index < weeklyForecasts.Count; index++)
+                                {
+                                    var dailyForecast = weeklyForecasts[index];
+                                    var rangeBand = weeklyBands[index];
+
+                                    <article class="weather-range-row">
+                                        <div class="weather-range-meta">
+                                            <p class="weather-range-day">@FormatDayLabel(dailyForecast.Date, index, T("Today", "Сегодня", "Сёння"))</p>
+                                            <p class="weather-range-copy">@T("Night", "Ночь", "Ноч") @FormatTemperature(dailyForecast.NightTemperatureC) · @T("Day", "День", "Дзень") @FormatTemperature(dailyForecast.DayTemperatureC)</p>
+                                        </div>
+                                        <svg class="weather-range-chart" viewBox="0 0 260 32" role="img" aria-label="@T("Daily temperature range", "Дневной температурный диапазон", "Дзённы тэмпературны дыяпазон")">
+                                            <rect class="weather-range-track" x="18" y="12" width="224" height="8" rx="4"></rect>
+                                            <rect class="weather-range-fill" x="@Svg(rangeBand.X)" y="12" width="@Svg(rangeBand.Width)" height="8" rx="4"></rect>
+                                            <circle class="weather-range-dot" cx="@Svg(rangeBand.X)" cy="16" r="5"></circle>
+                                            <circle class="weather-range-dot" cx="@Svg(rangeBand.X + rangeBand.Width)" cy="16" r="5"></circle>
+                                        </svg>
+                                        <p class="weather-range-wind">@T("Wind", "Ветер", "Вецер") @Math.Round(dailyForecast.WindSpeedKmh) km/h</p>
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </section>
+                </div>
+            }
+        </section>
+    </div>
+</div>

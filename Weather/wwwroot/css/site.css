@@ -139,6 +139,8 @@ input {
     height: 48px;
     padding: 0;
     color: rgba(237, 244, 255, 0.68);
+    text-decoration: none;
+    cursor: pointer;
     border: 0;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.06);
@@ -656,6 +658,261 @@ input {
     gap: 10px;
 }
 
+.weather-timeline-grid .weather-timeline-temperature-panel,
+.weather-timeline-grid .weather-timeline-rhythm-panel {
+    grid-column: 1;
+}
+
+.weather-timeline-grid .weather-timeline-atmosphere-panel,
+.weather-timeline-grid .weather-timeline-week-panel {
+    grid-column: 2;
+}
+
+.weather-chart-shell,
+.weather-mini-chart-block,
+.weather-range-list {
+    padding-top: 20px;
+}
+
+.weather-chart-empty {
+    padding-top: 20px;
+}
+
+.weather-chart-svg,
+.weather-ring-chart,
+.weather-meter-chart,
+.weather-compare-chart,
+.weather-range-chart {
+    width: 100%;
+    height: auto;
+}
+
+.weather-chart-svg {
+    overflow: visible;
+}
+
+.weather-chart-guide,
+.weather-compare-baseline {
+    stroke: rgba(241, 246, 255, 0.18);
+    stroke-width: 1;
+}
+
+.weather-chart-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 4;
+}
+
+.weather-chart-line--temperature {
+    stroke: #ffd978;
+}
+
+.weather-chart-line--wind {
+    stroke: #88e4ff;
+}
+
+.weather-chart-point {
+    stroke: rgba(17, 32, 63, 0.9);
+    stroke-width: 3;
+}
+
+.weather-chart-point--temperature {
+    fill: #ffd978;
+}
+
+.weather-chart-point--wind {
+    fill: #88e4ff;
+}
+
+.weather-chart-bar {
+    fill: rgba(126, 215, 255, 0.85);
+}
+
+.weather-chart-axis,
+.weather-compare-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.weather-chart-axis {
+    padding-top: 12px;
+}
+
+.weather-chart-tick,
+.weather-compare-legend span {
+    display: grid;
+    gap: 4px;
+    text-align: center;
+}
+
+.weather-chart-tick-label,
+.weather-chart-tick-value,
+.weather-mini-chart-title,
+.weather-range-copy,
+.weather-range-wind,
+.weather-visual-metric-reading,
+.weather-compare-legend span {
+    color: rgba(234, 242, 255, 0.74);
+}
+
+.weather-chart-tick-label,
+.weather-mini-chart-title,
+.weather-range-day {
+    font-weight: 700;
+}
+
+.weather-chart-tick-label,
+.weather-chart-tick-value,
+.weather-range-copy,
+.weather-range-wind,
+.weather-visual-metric-reading,
+.weather-compare-legend span {
+    font-size: 0.92rem;
+}
+
+.weather-chart-tick-value {
+    margin: 0;
+}
+
+.weather-timeline-summary-grid,
+.weather-timeline-summary-strip,
+.weather-timeline-metric-grid,
+.weather-dual-chart-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.weather-timeline-summary-grid,
+.weather-timeline-summary-strip,
+.weather-dual-chart-grid {
+    padding-top: 20px;
+}
+
+.weather-timeline-summary-grid,
+.weather-dual-chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.weather-timeline-metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-top: 20px;
+}
+
+.weather-timeline-summary-card,
+.weather-visual-metric-card,
+.weather-mini-chart-block,
+.weather-range-row {
+    border-radius: 24px;
+}
+
+.weather-timeline-summary-card,
+.weather-mini-chart-block,
+.weather-range-row {
+    padding: 18px;
+}
+
+.weather-mini-chart-block,
+.weather-range-row {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.weather-visual-metric-card {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+}
+
+.weather-visual-metric-head,
+.weather-range-meta {
+    display: grid;
+    gap: 6px;
+}
+
+.weather-visual-metric-reading,
+.weather-range-day,
+.weather-range-copy {
+    margin: 0;
+}
+
+.weather-ring-chart-wrap {
+    display: grid;
+    place-items: center;
+}
+
+.weather-ring-track,
+.weather-range-track {
+    fill: rgba(255, 255, 255, 0.08);
+}
+
+.weather-ring-track,
+.weather-ring-progress {
+    stroke-width: 10;
+}
+
+.weather-ring-track,
+.weather-ring-progress,
+.weather-meter-track,
+.weather-meter-fill {
+    fill: none;
+}
+
+.weather-ring-track {
+    stroke: rgba(255, 255, 255, 0.12);
+}
+
+.weather-ring-progress {
+    stroke: #8be8ff;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 48px 48px;
+}
+
+.weather-meter-track {
+    fill: rgba(255, 255, 255, 0.08);
+}
+
+.weather-meter-fill {
+    fill: rgba(139, 232, 255, 0.88);
+}
+
+.weather-meter-thumb,
+.weather-range-dot {
+    fill: #ffd978;
+}
+
+.weather-compare-bar--actual {
+    fill: rgba(255, 217, 120, 0.88);
+}
+
+.weather-compare-bar--feel {
+    fill: rgba(139, 232, 255, 0.88);
+}
+
+.weather-range-list {
+    display: grid;
+    gap: 14px;
+}
+
+.weather-range-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(180px, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+}
+
+.weather-range-day,
+.weather-range-wind {
+    margin: 0;
+}
+
+.weather-range-fill {
+    fill: rgba(255, 217, 120, 0.85);
+}
+
 @media (max-width: 1199px) {
     .weather-dashboard-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -709,8 +966,23 @@ input {
     .weather-current-panel,
     .weather-hourly-panel,
     .weather-highlights-panel,
-    .weather-weekly-panel {
+    .weather-weekly-panel,
+    .weather-timeline-grid .weather-timeline-temperature-panel,
+    .weather-timeline-grid .weather-timeline-atmosphere-panel,
+    .weather-timeline-grid .weather-timeline-rhythm-panel,
+    .weather-timeline-grid .weather-timeline-week-panel {
         grid-column: auto;
+    }
+
+    .weather-timeline-metric-grid,
+    .weather-dual-chart-grid,
+    .weather-timeline-summary-grid,
+    .weather-timeline-summary-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .weather-range-row {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -754,7 +1026,11 @@ input {
         text-align: left;
     }
 
-    .weather-highlight-grid {
+    .weather-highlight-grid,
+    .weather-timeline-metric-grid,
+    .weather-dual-chart-grid,
+    .weather-timeline-summary-grid,
+    .weather-timeline-summary-strip {
         grid-template-columns: 1fr;
     }
 
