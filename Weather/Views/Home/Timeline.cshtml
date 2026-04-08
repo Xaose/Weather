@@ -1,3 +1,4 @@
+@using System.Globalization
 @model Weather.Models.HomeDashboardViewModel
 @using System.Globalization
 
@@ -86,7 +87,51 @@
         return points;
     }
 
-    public static string BuildPolyline(List<ChartPoint> points) => string.Join(" ", points.Select(point => $"{point.X:0.##},{point.Y:0.##}"));
+    public static string BuildPolyline(List<ChartPoint> points) => string.Join(" ", points.Select(point => $"{Svg(point.X)},{Svg(point.Y)}"));
+
+    public static string BuildSmoothPath(List<ChartPoint> points)
+    {
+        if (points.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        if (points.Count == 1)
+        {
+            return $"M {Svg(points[0].X)} {Svg(points[0].Y)}";
+        }
+
+        var pathSegments = new List<string>
+        {
+            $"M {Svg(points[0].X)} {Svg(points[0].Y)}"
+        };
+
+        if (points.Count == 2)
+        {
+            pathSegments.Add($"L {Svg(points[1].X)} {Svg(points[1].Y)}");
+            return string.Join(" ", pathSegments);
+        }
+
+        const double tension = 0.45;
+
+        for (var index = 0; index < points.Count - 1; index++)
+        {
+            var previous = index == 0 ? points[index] : points[index - 1];
+            var current = points[index];
+            var next = points[index + 1];
+            var after = index + 2 < points.Count ? points[index + 2] : next;
+
+            var control1X = current.X + ((next.X - previous.X) / 6d) * tension;
+            var control1Y = current.Y + ((next.Y - previous.Y) / 6d) * tension;
+            var control2X = next.X - ((after.X - current.X) / 6d) * tension;
+            var control2Y = next.Y - ((after.Y - current.Y) / 6d) * tension;
+
+            pathSegments.Add(
+                $"C {Svg(control1X)} {Svg(control1Y)} {Svg(control2X)} {Svg(control2Y)} {Svg(next.X)} {Svg(next.Y)}");
+        }
+
+        return string.Join(" ", pathSegments);
+    }
 
     public static List<ChartBar> BuildBars(IReadOnlyList<int> values, double width, double height, double paddingX = 18, double paddingTop = 18, double paddingBottom = 30, double gap = 10)
     {
@@ -147,6 +192,41 @@
 
         return bands;
     }
+
+    public static List<ChartPoint> BuildInterpolatedPoints(IReadOnlyList<ChartPoint> points, int subdivisions = 4)
+    {
+        if (points.Count <= 1 || subdivisions < 2)
+        {
+            return points.ToList();
+        }
+
+        var interpolated = new List<ChartPoint>();
+
+        for (var index = 0; index < points.Count - 1; index++)
+        {
+            var start = points[index];
+            var end = points[index + 1];
+
+            if (index == 0)
+            {
+                interpolated.Add(start);
+            }
+
+            for (var step = 1; step < subdivisions; step++)
+            {
+                var t = step / (double)subdivisions;
+                interpolated.Add(new ChartPoint
+                {
+                    X = start.X + ((end.X - start.X) * t),
+                    Y = start.Y + ((end.Y - start.Y) * t)
+                });
+            }
+
+            interpolated.Add(end);
+        }
+
+        return interpolated;
+    }
 }
 
 @{
@@ -177,6 +257,9 @@
     var precipitationBars = BuildBars(precipitationValues, 360, 150);
     var weeklyBands = BuildRangeBands(weeklyForecasts, 260);
 
+    var smoothTemperaturePoints = BuildInterpolatedPoints(temperaturePoints);
+    var smoothWindPoints = BuildInterpolatedPoints(windPoints);
+
     var averageHourlyTemperature = temperatureValues.Count == 0 ? 0 : temperatureValues.Average();
     var warmestHourlyTemperature = temperatureValues.Count == 0 ? 0 : temperatureValues.Max();
     var strongestWind = windValues.Count == 0 ? 0 : windValues.Max();
@@ -195,19 +278,17 @@
     var feelsLikeBarHeight = 52 * ((feelsLikeTemperature - comparisonMinimum) / comparisonRange);
     var comfortDelta = feelsLikeTemperature - actualTemperature;
 
-    var humidityLabel = humidity switch
-    {
-        < 35 => T("Dry air", "Сухой воздух", "Сухое паветра"),
-        > 70 => T("Heavy moisture", "Высокая влажность", "Высокая вільготнасць"),
-        _ => T("Balanced air", "Комфортная влажность", "Камфортная вільготнасць")
-    };
+    var humidityLabel = humidity < 35
+        ? T("Dry air", "Сухой воздух", "Сухое паветра")
+        : humidity > 70
+            ? T("Heavy moisture", "Высокая влажность", "Высокая вільготнасць")
+            : T("Balanced air", "Комфортная влажность", "Камфортная вільготнасць");
 
-    var pressureLabel = pressureValue switch
-    {
-        < 1005 => T("Softer pressure", "Пониженное давление", "Паніжаны ціск"),
-        > 1020 => T("Stable pressure", "Стабильное давление", "Стабільны ціск"),
-        _ => T("Normal pressure", "Нормальное давление", "Нармальны ціск")
-    };
+    var pressureLabel = pressureValue < 1005
+        ? T("Softer pressure", "Пониженное давление", "Паніжаны ціск")
+        : pressureValue > 1020
+            ? T("Stable pressure", "Стабильное давление", "Стабільны ціск")
+            : T("Normal pressure", "Нормальное давление", "Нармальны ціск");
 }
 
 <div class="weather-dashboard">
@@ -302,7 +383,7 @@
                                     <line class="weather-chart-guide" x1="24" y1="32" x2="336" y2="32"></line>
                                     <line class="weather-chart-guide" x1="24" y1="90" x2="336" y2="90"></line>
                                     <line class="weather-chart-guide" x1="24" y1="148" x2="336" y2="148"></line>
-                                    <polyline class="weather-chart-line weather-chart-line--temperature" points="@BuildPolyline(temperaturePoints)"></polyline>
+                                    <polyline class="weather-chart-line weather-chart-line--temperature" points="@BuildPolyline(smoothTemperaturePoints)"></polyline>
                                     @foreach (var point in temperaturePoints)
                                     {
                                         <circle class="weather-chart-point weather-chart-point--temperature" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="4"></circle>
@@ -405,7 +486,7 @@
                         }
                         else
                         {
-                            <div class="weather-dual-chart-grid">
+                            <div class="weather-dual-chart-grid weather-dual-chart-grid--stacked">
                                 <div class="weather-mini-chart-block">
                                     <p class="weather-mini-chart-title">@T("Rain chance", "Вероятность дождя", "Верагоднасць дажджу")</p>
                                     <svg class="weather-chart-svg weather-chart-svg--compact" viewBox="0 0 360 150" role="img" aria-label="@T("Precipitation chart", "График осадков", "Графік ападкаў")">
@@ -432,7 +513,7 @@
                                         <line class="weather-chart-guide" x1="24" y1="24" x2="336" y2="24"></line>
                                         <line class="weather-chart-guide" x1="24" y1="76" x2="336" y2="76"></line>
                                         <line class="weather-chart-guide" x1="24" y1="128" x2="336" y2="128"></line>
-                                        <polyline class="weather-chart-line weather-chart-line--wind" points="@BuildPolyline(windPoints)"></polyline>
+                                        <polyline class="weather-chart-line weather-chart-line--wind" points="@BuildPolyline(smoothWindPoints)"></polyline>
                                         @foreach (var point in windPoints)
                                         {
                                             <circle class="weather-chart-point weather-chart-point--wind" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="4"></circle>

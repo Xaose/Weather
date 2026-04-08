@@ -946,7 +946,7 @@ input {
 }
 
 .weather-chart-svg {
-    overflow: visible;
+    overflow: hidden;
 }
 
 .weather-chart-guide,
@@ -957,9 +957,10 @@ input {
 
 .weather-chart-line {
     fill: none;
-    stroke-linecap: round;
+    stroke-linecap: butt;
     stroke-linejoin: round;
     stroke-width: 4;
+    vector-effect: non-scaling-stroke;
 }
 
 .weather-chart-line--temperature {
@@ -973,6 +974,7 @@ input {
 .weather-chart-point {
     stroke: rgba(17, 32, 63, 0.9);
     stroke-width: 3;
+    vector-effect: non-scaling-stroke;
 }
 
 .weather-chart-point--temperature {
@@ -1324,4 +1326,12 @@ input {
     .weather-weekly-list {
         grid-template-columns: 1fr 1fr;
     }
+}
+
+.weather-dual-chart-grid--stacked {
+    grid-template-columns: 1fr;
+}
+
+.weather-dual-chart-grid--stacked .weather-mini-chart-block {
+    width: 100%;
 }
