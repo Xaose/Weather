@@ -1,5 +1,6 @@
 @using System.Globalization
 @model Weather.Models.HomeDashboardViewModel
+@using System.Globalization
 
 @functions {
     public static string FormatTemperature(double temperature) => $"{Math.Round(temperature):0}°";
@@ -50,6 +51,7 @@
     var isBe = currentLanguage == "be";
     var overviewUrl = Url.Action("Index", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
     var timelineUrl = Url.Action("Timeline", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
+    var chatUrl = Url.Action("Chat", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
 }
 
@@ -66,9 +68,9 @@
                 <a class="weather-rail-button" href="@timelineUrl" aria-label="Timeline">
                     <span class="weather-rail-glyph weather-rail-glyph--timeline"></span>
                 </a>
-                <button class="weather-rail-button" type="button" aria-label="Settings">
-                    <span class="weather-rail-glyph weather-rail-glyph--tune"></span>
-                </button>
+                <a class="weather-rail-button" href="@chatUrl" aria-label="Chat">
+                    <span class="weather-rail-glyph weather-rail-glyph--chat"></span>
+                </a>
             </div>
             <div class="weather-rail-profile">W</div>
         </aside>

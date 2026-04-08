@@ -1,0 +1,146 @@
+@model Weather.Models.HomeDashboardViewModel
+@using System.Globalization
+
+@functions {
+    public static string FormatTemperature(double temperature) => $"{Math.Round(temperature):0}°";
+
+    public static string T(string en, string ru, string be)
+    {
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return language switch
+        {
+            "ru" => ru,
+            "be" => be,
+            _ => en
+        };
+    }
+}
+
+@{
+    ViewData["Title"] = T("Weather chat", "Чат о погоде", "Чат пра надвор'е");
+
+    var currentWeather = Model.CurrentWeather;
+    var locationDisplayName = string.IsNullOrWhiteSpace(Model.LocationDisplayName)
+        ? T("Select a location", "Выберите локацию", "Абярыце лакацыю")
+        : Model.LocationDisplayName;
+
+    var currentLanguageCode = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToUpperInvariant();
+    var currentLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+    var isEn = currentLanguage == "en";
+    var isRu = currentLanguage == "ru";
+    var isBe = currentLanguage == "be";
+    var overviewUrl = Url.Action("Index", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
+    var timelineUrl = Url.Action("Timeline", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
+    var chatUrl = Url.Action("Chat", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+
+<div class="weather-dashboard">
+    <div class="weather-dashboard-shell">
+        <aside class="weather-side-rail" aria-label="Dashboard navigation">
+            <button class="weather-rail-button weather-rail-button--menu" type="button" aria-label="Menu">
+                <span class="weather-rail-glyph weather-rail-glyph--menu"></span>
+            </button>
+            <div class="weather-rail-stack">
+                <a class="weather-rail-button" href="@overviewUrl" aria-label="Overview">
+                    <span class="weather-rail-glyph weather-rail-glyph--grid"></span>
+                </a>
+                <a class="weather-rail-button" href="@timelineUrl" aria-label="Timeline">
+                    <span class="weather-rail-glyph weather-rail-glyph--timeline"></span>
+                </a>
+                <a class="weather-rail-button weather-rail-button--active" href="@chatUrl" aria-label="Chat">
+                    <span class="weather-rail-glyph weather-rail-glyph--chat"></span>
+                </a>
+            </div>
+            <div class="weather-rail-profile">W</div>
+        </aside>
+
+        <section class="weather-dashboard-main">
+            <header class="weather-dashboard-header">
+                <div class="weather-dashboard-copy">
+                    <p class="weather-dashboard-kicker">@T("Live weather", "Погода онлайн", "Надвор'е анлайн")</p>
+                    <h1 class="weather-dashboard-title">@T("Weather assistant", "Погодный помощник", "Памочнік па надвор'і")</h1>
+                    <p class="weather-dashboard-subtitle">@T("Ask the assistant about weather, clothing, travel, and activities. Your conversations stay in this browser for now.", "Спрашивайте помощника о погоде, одежде, поездках и занятиях. Ваши диалоги пока сохраняются только в этом браузере.", "Спытаць памочніка пра надвор'е, вопратку, паездкі і заняткі. Вашы размовы пакуль захоўваюцца толькі ў гэтым браўзеры.")</p>
+                </div>
+
+                <div class="weather-dashboard-actions">
+                    <form class="weather-search-form" method="get" asp-action="Chat" asp-controller="Home" novalidate>
+                        <input class="weather-search-coordinate" type="hidden" name="latitude" value="@Model.Latitude" data-location-latitude>
+                        <input class="weather-search-coordinate" type="hidden" name="longitude" value="@Model.Longitude" data-location-longitude>
+
+                        <div class="weather-search-input-shell">
+                            <span class="weather-search-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M10.5 4a6.5 6.5 0 1 0 4.09 11.56l4.42 4.43 1.41-1.42-4.42-4.42A6.5 6.5 0 0 0 10.5 4Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z"></path>
+                                </svg>
+                            </span>
+                            <input class="weather-search-input" type="search" name="location" value="@locationDisplayName" placeholder="@T("Search your location", "Введите город", "Увядзіце горад")" autocomplete="off" spellcheck="false" data-location-search>
+                            <button class="weather-location-button" type="button" aria-label="@T("Use current location", "Использовать текущее местоположение", "Выкарыстаць бягучае месцазнаходжанне")" data-current-location>
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M12 2a1 1 0 0 1 1 1v1.07a8 8 0 0 1 6.93 6.93H21a1 1 0 1 1 0 2h-1.07A8 8 0 0 1 13 19.93V21a1 1 0 1 1-2 0v-1.07A8 8 0 0 1 4.07 13H3a1 1 0 1 1 0-2h1.07A8 8 0 0 1 11 4.07V3a1 1 0 0 1 1-1Zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="weather-search-results" data-location-results hidden></div>
+                    </form>
+
+                    <details class="weather-language-picker">
+                        <summary class="weather-profile-badge weather-language-trigger" aria-label="@T("Change language", "Сменить язык", "Змяніць мову")">@currentLanguageCode</summary>
+                        <div class="weather-language-menu">
+                            <a class="weather-language-option @(isEn ? "weather-language-option--active" : "")" aria-current="@(isEn ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "en", returnUrl })">EN</a>
+                            <a class="weather-language-option @(isRu ? "weather-language-option--active" : "")" aria-current="@(isRu ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "ru", returnUrl })">RU</a>
+                            <a class="weather-language-option @(isBe ? "weather-language-option--active" : "")" aria-current="@(isBe ? "true" : "false")" href="@Url.Action("Set", "Language", new { culture = "be", returnUrl })">BY</a>
+                        </div>
+                    </details>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <section class="weather-panel weather-status-panel">
+                    <p class="weather-status-label">@T("Unable to load forecast", "Не удалось загрузить прогноз", "Не атрымалася загрузіць прагноз")</p>
+                    <h2 class="weather-status-title">@Model.ErrorMessage</h2>
+                    <p class="weather-status-copy">@T("Try another location from the search field, or use the current-location button to refresh the assistant context.", "Попробуйте другой город в строке поиска или используйте кнопку текущей геолокации, чтобы обновить контекст помощника.", "Паспрабуйце іншы горад у пошуку або кнопку бягучай геалакацыі, каб абнавіць кантэкст памочніка.")</p>
+                </section>
+            }
+            else
+            {
+                <div class="weather-chat-board" data-weather-chat data-assistant-endpoint="@Url.Content("~/api/assistant/chat")" data-location-display-name="@Model.LocationDisplayName" data-location-name="@Model.LocationName" data-location-latitude="@Model.Latitude.ToString(CultureInfo.InvariantCulture)" data-location-longitude="@Model.Longitude.ToString(CultureInfo.InvariantCulture)">
+                    <aside class="weather-panel weather-chat-sessions-panel">
+                        <div class="weather-section-heading">
+                            <div>
+                                <p class="weather-section-kicker">@T("Sessions", "Сессии", "Сесіі")</p>
+                                <h2 class="weather-section-title">@T("Saved chats", "Сохранённые чаты", "Захаваныя чаты")</h2>
+                            </div>
+                            <button class="weather-chat-new-session" type="button" data-chat-new-session>@T("New", "Новый", "Новы")</button>
+                        </div>
+
+                        <div class="weather-chat-session-list" data-chat-session-list></div>
+                    </aside>
+
+                    <section class="weather-panel weather-chat-conversation-panel">
+                        <div class="weather-chat-thread-head">
+                            <div>
+                                <p class="weather-section-kicker">@T("Assistant", "Ассистент", "Памочнік")</p>
+                                <h2 class="weather-section-title">@T("Weather conversation", "Диалог о погоде", "Размова пра надвор'е")</h2>
+                            </div>
+                            <span class="weather-section-tag" data-chat-session-title>@locationDisplayName</span>
+                        </div>
+
+                        <div class="weather-chat-messages" data-chat-messages aria-live="polite"></div>
+
+                        <form class="weather-chat-composer" data-chat-form>
+                            <label class="weather-chat-input-label" for="weather-chat-input">@T("Ask anything about the forecast, what to wear, or whether to go out.", "Спросите о прогнозе, одежде или о том, стоит ли выходить.", "Спытаеце пра прагноз, вопратку або пра тое, ці варта выходзіць.")</label>
+                            <textarea id="weather-chat-input" class="weather-chat-input" rows="3" placeholder="@T("Example: Do I need an umbrella today?", "Например: Нужен ли мне зонтик сегодня?", "Напрыклад: Ці патрэбна мне парасонка сёння?")" data-chat-input></textarea>
+                            <div class="weather-chat-composer-actions">
+                                <p class="weather-chat-hint">@T("Sessions are stored locally in this browser.", "Сессии хранятся локально в этом браузере.", "Сесіі захоўваюцца лакальна ў гэтым браўзеры.")</p>
+                                <button class="weather-chat-send" type="submit">@T("Send", "Отправить", "Адправіць")</button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            }
+        </section>
+    </div>
+</div>

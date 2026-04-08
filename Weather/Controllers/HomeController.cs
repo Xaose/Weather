@@ -43,6 +43,16 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
         return View(model);
     }
 
+    public async Task<IActionResult> Chat(
+        double? latitude,
+        double? longitude,
+        string? location,
+        CancellationToken cancellationToken = default)
+    {
+        var model = await BuildDashboardModelAsync(latitude, longitude, location, cancellationToken);
+        return View(model);
+    }
+
     private async Task<HomeDashboardViewModel> BuildDashboardModelAsync(
         double? latitude,
         double? longitude,

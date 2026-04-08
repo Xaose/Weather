@@ -233,6 +233,30 @@ input {
     border: 0;
 }
 
+.weather-rail-glyph--chat {
+    border: 2px solid currentColor;
+    border-radius: 10px;
+}
+
+.weather-rail-glyph--chat::before {
+    top: 3px;
+    left: 3px;
+    width: 9px;
+    height: 6px;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+}
+
+.weather-rail-glyph--chat::after {
+    right: 1px;
+    bottom: -1px;
+    width: 7px;
+    height: 7px;
+    background: linear-gradient(135deg, transparent 50%, currentColor 50%);
+    transform: rotate(45deg);
+    transform-origin: center;
+}
+
 .weather-rail-profile {
     display: grid;
     place-items: center;
@@ -658,6 +682,240 @@ input {
     gap: 10px;
 }
 
+.weather-chat-board {
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    gap: 22px;
+}
+
+.weather-chat-sessions-panel,
+.weather-chat-conversation-panel {
+    display: grid;
+    gap: 18px;
+}
+
+.weather-chat-session-list {
+    display: grid;
+    gap: 10px;
+}
+
+.weather-chat-session-item {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    padding: 16px;
+    color: inherit;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.weather-chat-session-item:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.weather-chat-session-item--active {
+    border-color: rgba(255, 255, 255, 0.34);
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.weather-chat-session-title,
+.weather-chat-session-preview,
+.weather-chat-session-time,
+.weather-chat-input-label,
+.weather-chat-hint,
+.weather-chat-message-meta,
+.weather-chat-weather-label,
+.weather-chat-weather-note,
+.weather-chat-weather-stat-label,
+.weather-chat-weather-stat-value,
+.weather-chat-weather-hour,
+.weather-chat-weather-day,
+.weather-chat-weather-extra,
+.weather-chat-empty-state {
+    margin: 0;
+}
+
+.weather-chat-session-title,
+.weather-chat-message-author,
+.weather-chat-weather-title {
+    font-weight: 700;
+}
+
+.weather-chat-session-preview,
+.weather-chat-session-time,
+.weather-chat-hint,
+.weather-chat-message-meta,
+.weather-chat-weather-note,
+.weather-chat-weather-extra,
+.weather-chat-weather-stat-label,
+.weather-chat-weather-hour,
+.weather-chat-weather-day,
+.weather-chat-empty-state {
+    color: rgba(234, 242, 255, 0.72);
+}
+
+.weather-chat-session-time,
+.weather-chat-message-meta,
+.weather-chat-weather-extra,
+.weather-chat-weather-note,
+.weather-chat-weather-hour,
+.weather-chat-weather-day,
+.weather-chat-weather-stat-label,
+.weather-chat-weather-stat-value {
+    font-size: 0.92rem;
+}
+
+.weather-chat-new-session,
+.weather-chat-send {
+    padding: 12px 16px;
+    color: #11203f;
+    font-weight: 700;
+    border: 0;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(224, 241, 255, 0.82));
+}
+
+.weather-chat-thread-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.weather-chat-messages {
+    display: grid;
+    gap: 14px;
+    min-height: 460px;
+    max-height: 66vh;
+    padding-top: 6px;
+    overflow-y: auto;
+}
+
+.weather-chat-message {
+    display: grid;
+    gap: 10px;
+    max-width: 88%;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.weather-chat-message--user {
+    justify-self: end;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.weather-chat-message--assistant {
+    justify-self: start;
+}
+
+.weather-chat-message--typing {
+    opacity: 0.7;
+}
+
+.weather-chat-message-content {
+    white-space: pre-wrap;
+}
+
+.weather-chat-weather-card {
+    display: grid;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    background: rgba(18, 31, 60, 0.24);
+}
+
+.weather-chat-weather-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.weather-chat-weather-title {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.weather-chat-weather-grid,
+.weather-chat-weather-hours,
+.weather-chat-weather-days {
+    display: grid;
+    gap: 10px;
+}
+
+.weather-chat-weather-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.weather-chat-weather-stat,
+.weather-chat-weather-hour,
+.weather-chat-weather-day {
+    padding: 12px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.weather-chat-weather-hours,
+.weather-chat-weather-days {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.weather-chat-weather-hour,
+.weather-chat-weather-day {
+    display: grid;
+    gap: 6px;
+}
+
+.weather-chat-weather-stat-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.weather-chat-weather-answer {
+    margin: 0;
+}
+
+.weather-chat-composer {
+    display: grid;
+    gap: 12px;
+    padding-top: 12px;
+}
+
+.weather-chat-input {
+    width: 100%;
+    min-height: 120px;
+    padding: 16px;
+    color: #f2f7ff;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.06);
+    resize: vertical;
+}
+
+.weather-chat-input::placeholder {
+    color: rgba(234, 242, 255, 0.5);
+}
+
+.weather-chat-composer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.weather-chat-hint {
+    flex: 1;
+}
+
+.weather-chat-send {
+    min-width: 126px;
+}
+
 .weather-timeline-grid .weather-timeline-temperature-panel,
 .weather-timeline-grid .weather-timeline-rhythm-panel {
     grid-column: 1;
@@ -970,19 +1228,29 @@ input {
     .weather-timeline-grid .weather-timeline-temperature-panel,
     .weather-timeline-grid .weather-timeline-atmosphere-panel,
     .weather-timeline-grid .weather-timeline-rhythm-panel,
-    .weather-timeline-grid .weather-timeline-week-panel {
+    .weather-timeline-grid .weather-timeline-week-panel,
+    .weather-chat-board {
         grid-column: auto;
     }
 
     .weather-timeline-metric-grid,
     .weather-dual-chart-grid,
     .weather-timeline-summary-grid,
-    .weather-timeline-summary-strip {
+    .weather-timeline-summary-strip,
+    .weather-chat-weather-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .weather-range-row {
         grid-template-columns: 1fr;
+    }
+
+    .weather-chat-board {
+        grid-template-columns: 1fr;
+    }
+
+    .weather-chat-message {
+        max-width: 100%;
     }
 }
 
@@ -1030,8 +1298,20 @@ input {
     .weather-timeline-metric-grid,
     .weather-dual-chart-grid,
     .weather-timeline-summary-grid,
-    .weather-timeline-summary-strip {
+    .weather-timeline-summary-strip,
+    .weather-chat-weather-grid,
+    .weather-chat-composer-actions {
         grid-template-columns: 1fr;
+    }
+
+    .weather-chat-thread-head,
+    .weather-chat-composer-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .weather-chat-message {
+        max-width: 100%;
     }
 
     .weather-weekly-list {
