@@ -19,7 +19,6 @@
 @{
     ViewData["Title"] = T("Weather chat", "Чат о погоде", "Чат пра надвор'е");
 
-    var currentWeather = Model.CurrentWeather;
     var locationDisplayName = string.IsNullOrWhiteSpace(Model.LocationDisplayName)
         ? T("Select a location", "Выберите локацию", "Абярыце лакацыю")
         : Model.LocationDisplayName;
@@ -33,6 +32,15 @@
     var timelineUrl = Url.Action("Timeline", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
     var chatUrl = Url.Action("Chat", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var chatThinkingText = T("Thinking about the weather…", "Думаю о погоде…", "Думаю пра надвор'е…");
+    var chatYouText = T("You", "Вы", "Вы");
+    var chatAssistantText = T("Assistant", "Ассистент", "Памочнік");
+    var chatNewChatText = T("New chat", "Новый чат", "Новы чат");
+    var chatNoMessagesText = T("No messages yet", "Сообщений пока нет", "Паведамленняў пакуль няма");
+    var chatAssistantReadyText = T("Assistant · ready", "Ассистент · готов", "Памочнік · гатовы");
+    var chatEmptyStateText = T("Ask about the forecast, what to wear, or whether it is a good time to go outside.", "Спросите о прогнозе, одежде или о том, стоит ли выходить.", "Спытайце пра прагноз, вопратку або пра тое, ці варта выходзіць.");
+    var chatDeleteSessionLabel = T("Delete chat", "Удалить чат", "Выдаліць чат");
+    var chatDeleteSessionConfirm = T("Delete this chat?", "Удалить этот чат?", "Выдаліць гэты чат?");
 }
 
 <div class="weather-dashboard">
@@ -106,7 +114,22 @@
             }
             else
             {
-                <div class="weather-chat-board" data-weather-chat data-assistant-endpoint="@Url.Content("~/api/assistant/chat")" data-location-display-name="@Model.LocationDisplayName" data-location-name="@Model.LocationName" data-location-latitude="@Model.Latitude.ToString(CultureInfo.InvariantCulture)" data-location-longitude="@Model.Longitude.ToString(CultureInfo.InvariantCulture)">
+                <div class="weather-chat-board"
+                     data-weather-chat
+                     data-assistant-endpoint="@Url.Content("~/api/assistant/chat")"
+                     data-chat-thinking-text="@chatThinkingText"
+                     data-chat-you-text="@chatYouText"
+                     data-chat-assistant-text="@chatAssistantText"
+                     data-chat-new-chat-text="@chatNewChatText"
+                     data-chat-no-messages-text="@chatNoMessagesText"
+                     data-chat-assistant-ready-text="@chatAssistantReadyText"
+                     data-chat-empty-state-text="@chatEmptyStateText"
+                     data-chat-delete-session-label="@chatDeleteSessionLabel"
+                     data-chat-delete-session-confirm="@chatDeleteSessionConfirm"
+                     data-location-display-name="@Model.LocationDisplayName"
+                     data-location-name="@Model.LocationName"
+                     data-location-latitude="@Model.Latitude.ToString(CultureInfo.InvariantCulture)"
+                     data-location-longitude="@Model.Longitude.ToString(CultureInfo.InvariantCulture)">
                     <aside class="weather-panel weather-chat-sessions-panel">
                         <div class="weather-section-heading">
                             <div>

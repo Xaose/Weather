@@ -186,6 +186,15 @@
     const chatInput = root.querySelector('[data-chat-input]');
     const createSessionButton = root.querySelector('[data-chat-new-session]');
     const sessionTitle = root.querySelector('[data-chat-session-title]');
+    const typingText = root.dataset.chatThinkingText || 'Думаю о погоде…';
+    const userLabel = root.dataset.chatYouText || 'Вы';
+    const assistantLabel = root.dataset.chatAssistantText || 'Ассистент';
+    const newChatTitle = root.dataset.chatNewChatText || 'Новый чат';
+    const noMessagesText = root.dataset.chatNoMessagesText || 'Сообщений пока нет';
+    const assistantReadyText = root.dataset.chatAssistantReadyText || 'Ассистент · готов';
+    const emptyStateText = root.dataset.chatEmptyStateText || 'Спросите о прогнозе, одежде или о том, стоит ли выходить.';
+    const deleteSessionLabel = root.dataset.chatDeleteSessionLabel || 'Удалить чат';
+    const deleteSessionConfirm = root.dataset.chatDeleteSessionConfirm || 'Удалить этот чат?';
     const storageKey = 'weather-chat-sessions';
     const activeKey = 'weather-chat-active-session';
 
@@ -227,6 +236,15 @@
     };
     const toKmh = (value) => typeof value === 'number' && !Number.isNaN(value) ? value * 3.6 : null;
     const createId = () => window.crypto?.randomUUID?.() || `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const minChatInputHeight = 56;
+    const maxChatInputHeight = 220;
+
+    const syncChatInputHeight = () => {
+        chatInput.style.height = 'auto';
+        const nextHeight = Math.max(minChatInputHeight, Math.min(chatInput.scrollHeight, maxChatInputHeight));
+        chatInput.style.height = `${nextHeight}px`;
+        chatInput.style.overflowY = chatInput.scrollHeight > maxChatInputHeight ? 'auto' : 'hidden';
+    };
 
     const loadSessions = () => {
         try {
@@ -240,7 +258,7 @@
     const createSession = () => ({
         id: createId(),
         assistantSessionId: null,
-        title: 'New chat',
+        title: newChatTitle,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         messages: []
@@ -285,17 +303,76 @@
         }
     };
 
+    const deleteSession = (sessionId) => {
+        const index = sessions.findIndex((session) => session.id === sessionId);
+        if (index === -1) {
+            return;
+        }
+
+        const wasActive = activeSessionId === sessionId;
+        sessions.splice(index, 1);
+
+        if (!sessions.length) {
+            sessions = [createSession()];
+            activeSessionId = sessions[0].id;
+            persist();
+            render();
+            return;
+        }
+
+        if (wasActive) {
+            const nextIndex = Math.min(index, sessions.length - 1);
+            activeSessionId = sessions[nextIndex]?.id || sessions[0].id;
+        }
+
+        if (!sessions.some((session) => session.id === activeSessionId)) {
+            activeSessionId = sessions[0].id;
+        }
+
+        persist();
+        render();
+    };
+
     const getWeatherSource = (data) => {
-        if (!isPlainObject(data)) {
+        const unwrap = (value) => {
+            if (typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    return unwrap(parsed);
+                } catch {
+                    return null;
+                }
+            }
+
+            if (!isPlainObject(value)) {
+                return null;
+            }
+
+            if (isPlainObject(value.data)) {
+                return unwrap(value.data);
+            }
+
+            if (typeof value.data === 'string') {
+                const parsed = unwrap(value.data);
+                if (parsed) {
+                    return parsed;
+                }
+            }
+
+            return value;
+        };
+
+        const normalizedData = unwrap(data);
+        if (!normalizedData) {
             return null;
         }
 
-        const hasWeatherShape = ['current', 'hourly', 'daily', 'minutely', 'alerts'].some((key) => key in data);
+        const hasWeatherShape = ['current', 'hourly', 'daily', 'minutely', 'alerts'].some((key) => key in normalizedData);
         if (hasWeatherShape) {
-            return { locationName: data.loc1 || data.location || data.name || '', payload: data };
+            return { locationName: normalizedData.loc1 || normalizedData.location || normalizedData.name || '', payload: normalizedData };
         }
 
-        const objectEntries = Object.entries(data).filter(([, value]) => isPlainObject(value));
+        const objectEntries = Object.entries(normalizedData).filter(([, value]) => isPlainObject(value));
         if (objectEntries.length === 1) {
             const [locationName, payload] = objectEntries[0];
             return { locationName, payload };
@@ -306,7 +383,7 @@
             return { locationName, payload };
         }
 
-        return { locationName: data.loc1 || data.name || '', payload: data };
+        return { locationName: normalizedData.loc1 || normalizedData.name || '', payload: normalizedData };
     };
 
     const getCurrentWeather = (payload) => {
@@ -321,6 +398,60 @@
         return payload;
     };
 
+    const hasNumericWeatherValue = (value) => typeof value === 'number' && !Number.isNaN(value);
+    const hasWeatherArray = (value) => Array.isArray(value) && value.some((entry) => isPlainObject(entry));
+
+    const hasCurrentWeatherShape = (value) => {
+        if (!isPlainObject(value)) {
+            return false;
+        }
+
+        return hasNumericWeatherValue(value.temp)
+            || hasNumericWeatherValue(value.feels_like)
+            || hasNumericWeatherValue(value.humidity)
+            || hasNumericWeatherValue(value.pressure)
+            || hasNumericWeatherValue(value.wind_speed)
+            || hasNumericWeatherValue(value.wind_deg)
+            || hasNumericWeatherValue(value.visibility)
+            || hasNumericWeatherValue(value.uvi)
+            || hasNumericWeatherValue(value.clouds)
+            || hasWeatherArray(value.weather);
+    };
+
+    const hasHourlyWeatherShape = (value) => Array.isArray(value) && value.some((entry) => isPlainObject(entry)
+        && (hasNumericWeatherValue(entry.temp)
+            || hasNumericWeatherValue(entry.feels_like)
+            || hasNumericWeatherValue(entry.pop)
+            || hasNumericWeatherValue(entry.wind_speed)
+            || hasWeatherArray(entry.weather)));
+
+    const hasDailyWeatherShape = (value) => Array.isArray(value) && value.some((entry) => {
+        if (!isPlainObject(entry)) {
+            return false;
+        }
+
+        const temp = isPlainObject(entry.temp) ? entry.temp : null;
+        return hasNumericWeatherValue(temp?.day)
+            || hasNumericWeatherValue(temp?.min)
+            || hasNumericWeatherValue(temp?.max)
+            || hasNumericWeatherValue(entry.pop)
+            || hasNumericWeatherValue(entry.wind_speed)
+            || hasWeatherArray(entry.weather);
+    });
+
+    const hasWeatherPayload = (payload) => {
+        if (!isPlainObject(payload)) {
+            return false;
+        }
+
+        const current = getCurrentWeather(payload);
+        return hasCurrentWeatherShape(current)
+            || hasHourlyWeatherShape(payload.hourly)
+            || hasDailyWeatherShape(payload.daily)
+            || (Array.isArray(payload.minutely) && payload.minutely.length > 0)
+            || (Array.isArray(payload.alerts) && payload.alerts.length > 0);
+    };
+
     const buildWeatherCard = (data) => {
         const source = getWeatherSource(data);
         if (!source) {
@@ -328,6 +459,10 @@
         }
 
         const payload = source.payload;
+        if (!hasWeatherPayload(payload)) {
+            return '';
+        }
+
         const current = getCurrentWeather(payload);
         const weather = Array.isArray(current?.weather) ? current.weather[0] : Array.isArray(payload.weather) ? payload.weather[0] : null;
         const temperature = toCelsius(current?.temp ?? payload.temp);
@@ -422,7 +557,7 @@
 
         const header = document.createElement('div');
         header.className = 'weather-chat-message-meta';
-        header.textContent = `${message.role === 'user' ? 'You' : 'Assistant'} · ${formatTime(message.createdAt)}`;
+        header.textContent = `${message.role === 'user' ? userLabel : assistantLabel} · ${formatTime(message.createdAt)}`;
 
         const content = document.createElement('p');
         content.className = 'weather-chat-message-content';
@@ -431,9 +566,12 @@
         article.append(header, content);
 
         if (message.data) {
-            const weatherWrapper = document.createElement('div');
-            weatherWrapper.innerHTML = buildWeatherCard(message.data);
-            article.append(weatherWrapper);
+            const weatherMarkup = buildWeatherCard(message.data);
+            if (weatherMarkup) {
+                const weatherWrapper = document.createElement('div');
+                weatherWrapper.innerHTML = weatherMarkup;
+                article.append(weatherWrapper);
+            }
         }
 
         return article;
@@ -443,8 +581,8 @@
         const empty = document.createElement('article');
         empty.className = 'weather-chat-message weather-chat-message--assistant';
         empty.innerHTML = `
-            <p class="weather-chat-message-meta">Assistant · ready</p>
-            <p class="weather-chat-message-content weather-chat-empty-state">Ask about the forecast, what to wear, or whether it is a good time to go outside.</p>
+            <p class="weather-chat-message-meta">${assistantReadyText}</p>
+            <p class="weather-chat-message-content weather-chat-empty-state">${escapeHtml(emptyStateText)}</p>
         `;
         return empty;
     };
@@ -454,23 +592,37 @@
         sessionList.innerHTML = '';
 
         orderedSessions.forEach((session) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = `weather-chat-session-item${session.id === activeSessionId ? ' weather-chat-session-item--active' : ''}`;
-            button.dataset.sessionId = session.id;
-
             const lastMessage = [...session.messages].reverse().find((message) => message.role === 'assistant' || message.role === 'user');
-            const preview = lastMessage?.content || 'No messages yet';
+            const preview = lastMessage?.content || noMessagesText;
 
-            button.innerHTML = `
+            const item = document.createElement('article');
+            item.className = `weather-chat-session-item${session.id === activeSessionId ? ' weather-chat-session-item--active' : ''}`;
+
+            const selectButton = document.createElement('button');
+            selectButton.type = 'button';
+            selectButton.className = 'weather-chat-session-select';
+            selectButton.dataset.sessionId = session.id;
+            selectButton.innerHTML = `
                 <span class="weather-chat-session-title">${escapeHtml(session.title)}</span>
                 <span class="weather-chat-session-preview">${escapeHtml(preview)}</span>
-                <span class="weather-chat-session-time">${escapeHtml(formatDate(session.updatedAt) || 'Just now')}</span>
+                <span class="weather-chat-session-time">${escapeHtml(formatDate(session.updatedAt) || new Date().toLocaleDateString([], { month: 'short', day: 'numeric' }))}</span>
             `;
 
-            sessionList.append(button);
-        });
-    };
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'weather-chat-session-delete';
+            deleteButton.dataset.chatDeleteSession = session.id;
+            deleteButton.title = deleteSessionLabel;
+            deleteButton.setAttribute('aria-label', deleteSessionLabel);
+            deleteButton.innerHTML = `
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M9 3.75A1.75 1.75 0 0 1 10.75 2h2.5A1.75 1.75 0 0 1 15 3.75V4h3.25a.75.75 0 0 1 0 1.5H18l-.7 12.02A2.25 2.25 0 0 1 15.05 19.5H8.95a2.25 2.25 0 0 1-2.25-1.98L6 5.5h-.25a.75.75 0 0 1 0-1.5H9v-.25Zm1.5.25V4h3v-.25a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Zm-1.27 4.5a.75.75 0 0 0-.75.75v6.5a.75.75 0 0 0 1.5 0v-6.5a.75.75 0 0 0-.75-.75Zm5.04 0a.75.75 0 0 0-.75.75v6.5a.75.75 0 0 0 1.5 0v-6.5a.75.75 0 0 0-.75-.75Z" />
+                </svg>`;
+
+            item.append(selectButton, deleteButton);
+            sessionList.append(item);
+         });
+     };
 
     const renderMessages = () => {
         const activeSession = getActiveSession();
@@ -502,7 +654,7 @@
     };
 
     const updateSessionTitle = (session, prompt) => {
-        if (session.title !== 'New chat') {
+        if (session.title !== newChatTitle) {
             return;
         }
 
@@ -529,7 +681,7 @@
         const typingMessage = {
             id: createId(),
             role: 'assistant',
-            content: 'Thinking about the weather…',
+            content: typingText,
             createdAt: new Date().toISOString(),
             typing: true
         };
@@ -550,8 +702,17 @@
             });
 
             const payload = await response.json().catch(() => ({}));
-                if (!response.ok) {
-                throw new Error(payload.error || 'Failed to load assistant response.');
+            if (!response.ok) {
+                activeSession.messages = activeSession.messages.filter((message) => message.id !== pendingTypingId);
+                activeSession.messages.push({
+                    id: createId(),
+                    role: 'assistant',
+                    content: payload.error || 'The assistant is unavailable right now.',
+                    createdAt: new Date().toISOString()
+                });
+                activeSession.updatedAt = new Date().toISOString();
+                render();
+                return;
             }
 
             activeSession.assistantSessionId = payload.session_id || activeSession.assistantSessionId;
@@ -583,11 +744,22 @@
     };
 
     sessionList.addEventListener('click', (event) => {
+        const deleteButton = event.target.closest('[data-chat-delete-session]');
+        if (deleteButton) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (window.confirm(deleteSessionConfirm)) {
+                deleteSession(deleteButton.dataset.chatDeleteSession);
+            }
+            return;
+        }
+
         const button = event.target.closest('[data-session-id]');
         if (!button) {
             return;
         }
-
+ 
         setActiveSession(button.dataset.sessionId);
     });
 
@@ -598,6 +770,7 @@
         persist();
         render();
         chatInput.value = '';
+        syncChatInputHeight();
         chatInput.focus();
     });
 
@@ -613,7 +786,12 @@
         }
 
         chatInput.value = '';
+        syncChatInputHeight();
         sendMessage(prompt);
+    });
+
+    chatInput.addEventListener('input', () => {
+        syncChatInputHeight();
     });
 
     chatInput.addEventListener('keydown', (event) => {
@@ -626,4 +804,5 @@
     const activeSession = getActiveSession();
     upsertSession(activeSession);
     render();
+    syncChatInputHeight();
 })();
