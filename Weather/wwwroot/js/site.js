@@ -806,3 +806,177 @@
     render();
     syncChatInputHeight();
 })();
+
+(() => {
+    const pushToggleButton = document.querySelector('[data-push-toggle]');
+    if (!pushToggleButton) {
+        return;
+    }
+
+    const enableText = pushToggleButton.dataset.pushEnableText || 'Enable rain alerts';
+    const disableText = pushToggleButton.dataset.pushDisableText || 'Disable rain alerts';
+    const unsupportedText = pushToggleButton.dataset.pushUnsupportedText || 'Push is not supported';
+    const deniedText = pushToggleButton.dataset.pushDeniedText || 'Notifications blocked';
+    const enableShortText = pushToggleButton.dataset.pushEnableShortText || 'PUSH';
+    const disableShortText = pushToggleButton.dataset.pushDisableShortText || 'ON';
+    const unsupportedShortText = pushToggleButton.dataset.pushUnsupportedShortText || 'N/A';
+    const deniedShortText = pushToggleButton.dataset.pushDeniedShortText || 'OFF';
+
+    const locationName = pushToggleButton.dataset.pushLocationName || '';
+    const latitudeField = document.querySelector('[data-location-latitude]');
+    const longitudeField = document.querySelector('[data-location-longitude]');
+
+    const getCoordinates = () => {
+        const latitude = Number.parseFloat(latitudeField?.value || '');
+        const longitude = Number.parseFloat(longitudeField?.value || '');
+        return {
+            latitude: Number.isFinite(latitude) ? latitude : 0,
+            longitude: Number.isFinite(longitude) ? longitude : 0
+        };
+    };
+
+    const setButtonState = (isSubscribed, disabled = false, shortTextOverride = '', labelOverride = '') => {
+        const shortLabel = shortTextOverride || (isSubscribed ? disableShortText : enableShortText);
+        const fullLabel = labelOverride || (isSubscribed ? disableText : enableText);
+
+        pushToggleButton.textContent = shortLabel;
+        pushToggleButton.title = fullLabel;
+        pushToggleButton.setAttribute('aria-label', fullLabel);
+        pushToggleButton.dataset.pushSubscribed = isSubscribed ? 'true' : 'false';
+        pushToggleButton.disabled = disabled;
+    };
+
+    const toUint8Array = (base64Url) => {
+        const base64 = `${base64Url}`.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = '='.repeat((4 - (base64.length % 4 || 4)) % 4);
+        const binary = window.atob(base64 + padding);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let index = 0; index < binary.length; index += 1) {
+            bytes[index] = binary.charCodeAt(index);
+        }
+
+        return bytes;
+    };
+
+    const getRegistration = async () => navigator.serviceWorker.register('/sw.js');
+
+    const getExistingSubscription = async () => {
+        const registration = await getRegistration();
+        return registration.pushManager.getSubscription();
+    };
+
+    const fetchVapidPublicKey = async () => {
+        const response = await fetch('/api/push/public-key');
+        if (!response.ok) {
+            throw new Error('Push public key is unavailable.');
+        }
+
+        const payload = await response.json();
+        if (!payload.publicKey) {
+            throw new Error('Push public key is unavailable.');
+        }
+
+        return payload.publicKey;
+    };
+
+    const subscribeOnServer = async (subscription) => {
+        const { latitude, longitude } = getCoordinates();
+        const culture = (document.documentElement.lang || navigator.language || 'en').slice(0, 2).toLowerCase();
+        const response = await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                subscription: subscription.toJSON(),
+                latitude,
+                longitude,
+                locationName,
+                culture
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to subscribe for push notifications.');
+        }
+    };
+
+    const unsubscribeOnServer = async (endpoint) => {
+        await fetch('/api/push/unsubscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ endpoint })
+        });
+    };
+
+    const initState = async () => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+            setButtonState(false, true, unsupportedShortText, unsupportedText);
+            return;
+        }
+
+        if (Notification.permission === 'denied') {
+            setButtonState(false, true, deniedShortText, deniedText);
+            return;
+        }
+
+        try {
+            const existingSubscription = await getExistingSubscription();
+            setButtonState(Boolean(existingSubscription));
+        } catch {
+            setButtonState(false);
+        }
+    };
+
+    pushToggleButton.addEventListener('click', async () => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+            setButtonState(false, true, unsupportedShortText, unsupportedText);
+            return;
+        }
+
+        if (Notification.permission === 'denied') {
+            setButtonState(false, true, deniedShortText, deniedText);
+            return;
+        }
+
+        setButtonState(pushToggleButton.dataset.pushSubscribed === 'true', true);
+
+        try {
+            const registration = await getRegistration();
+            const existingSubscription = await registration.pushManager.getSubscription();
+
+            if (existingSubscription) {
+                await unsubscribeOnServer(existingSubscription.endpoint);
+                await existingSubscription.unsubscribe();
+                setButtonState(false);
+                return;
+            }
+
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                if (permission === 'denied') {
+                    setButtonState(false, true, deniedShortText, deniedText);
+                } else {
+                    setButtonState(false);
+                }
+                return;
+            }
+
+            const vapidPublicKey = await fetchVapidPublicKey();
+            const newSubscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: toUint8Array(vapidPublicKey)
+            });
+
+            await subscribeOnServer(newSubscription);
+            setButtonState(true);
+        } catch {
+            setButtonState(false);
+        }
+    });
+
+    initState();
+})();

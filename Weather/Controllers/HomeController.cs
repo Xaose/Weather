@@ -74,7 +74,7 @@ public class HomeController(WeatherService weatherService, ILocationSearchServic
         try
         {
             var currentTask = weatherService.GetCurrentWeatherAsync(selectedLatitude, selectedLongitude, cancellationToken);
-            var hourlyTask = weatherService.GetDailyForecastAsync(selectedLatitude, selectedLongitude, 3, cancellationToken);
+            var hourlyTask = weatherService.GetDailyForecastAsync(selectedLatitude, selectedLongitude, 2, cancellationToken);
             var weeklyTask = weatherService.GetWeeklyForecastAsync(selectedLatitude, selectedLongitude, cancellationToken);
 
             await Task.WhenAll(currentTask, hourlyTask, weeklyTask);

@@ -1,6 +1,5 @@
 @using System.Globalization
 @model Weather.Models.HomeDashboardViewModel
-@using System.Globalization
 
 @functions {
     public sealed class ChartPoint
@@ -289,6 +288,14 @@
         : pressureValue > 1020
             ? T("Stable pressure", "Стабильное давление", "Стабільны ціск")
             : T("Normal pressure", "Нормальное давление", "Нармальны ціск");
+    var pushEnableText = T("Enable rain alerts", "Включить уведомления о дожде", "Уключыць апавяшчэнні пра дождж");
+    var pushDisableText = T("Disable rain alerts", "Отключить уведомления о дожде", "Адключыць апавяшчэнні пра дождж");
+    var pushUnsupportedText = T("Push is not supported", "Push не поддерживается", "Push не падтрымліваецца");
+    var pushDeniedText = T("Notifications blocked", "Уведомления заблокированы", "Апавяшчэнні заблакаваныя");
+    var pushEnableShortText = T("PUSH", "PUSH", "PUSH");
+    var pushDisableShortText = T("ON", "ВКЛ", "УКЛ");
+    var pushUnsupportedShortText = T("N/A", "N/A", "N/A");
+    var pushDeniedShortText = T("OFF", "OFF", "OFF");
 }
 
 <div class="weather-dashboard">
@@ -340,6 +347,19 @@
 
                         <div class="weather-search-results" data-location-results hidden></div>
                     </form>
+
+                    <button class="weather-profile-badge weather-push-toggle"
+                            type="button"
+                            data-push-toggle
+                            data-push-enable-text="@pushEnableText"
+                            data-push-disable-text="@pushDisableText"
+                            data-push-unsupported-text="@pushUnsupportedText"
+                            data-push-denied-text="@pushDeniedText"
+                            data-push-enable-short-text="@pushEnableShortText"
+                            data-push-disable-short-text="@pushDisableShortText"
+                            data-push-unsupported-short-text="@pushUnsupportedShortText"
+                            data-push-denied-short-text="@pushDeniedShortText"
+                            data-push-location-name="@Model.LocationDisplayName">@pushEnableShortText</button>
 
                     <details class="weather-language-picker">
                         <summary class="weather-profile-badge weather-language-trigger" aria-label="@T("Change language", "Сменить язык", "Змяніць мову")">@currentLanguageCode</summary>
@@ -410,7 +430,7 @@
                                 <article class="weather-highlight-card weather-timeline-summary-card">
                                     <p class="weather-highlight-label">@T("Current feel", "Сейчас ощущается", "Зараз адчуваецца")</p>
                                     <p class="weather-highlight-value">@FormatTemperature(feelsLikeTemperature)</p>
-                                    <p class="weather-highlight-meta">@T("Compared with live air temperature.", "По сравнению с фактической температурой воздуха.", "У параўнанні з фактычнай тэмпературай паветра.")</p>
+                                    <p class="weather-highlight-meta">@T("Compared with live air temperature.", "По сравнению с фактической температурой воздуха.", "У параўнанні з фактычнай тэмпературой паветра.")</p>
                                 </article>
                             </div>
                         }

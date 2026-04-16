@@ -269,6 +269,25 @@ input {
     background: linear-gradient(180deg, #fff8fb 0%, #f9d1de 100%);
 }
 
+.weather-push-toggle {
+    width: 64px;
+    min-width: 64px;
+    height: 64px;
+    padding: 0 8px;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -webkit-text-fill-color: white;
+}
+
+.weather-push-toggle[data-push-subscribed="true"] {
+    border-color: rgba(126, 235, 188, 0.44);
+    background: rgba(57, 146, 114, 0.25);
+}
+
 .weather-dashboard-main {
     position: relative;
     z-index: 1;
@@ -1308,6 +1327,10 @@ input {
         width: 100%;
         height: 56px;
         border-radius: 18px;
+    }
+
+    .weather-push-toggle {
+        min-width: 0;
     }
 
     .weather-dashboard-grid {

@@ -1,6 +1,5 @@
 @using System.Globalization
 @model Weather.Models.HomeDashboardViewModel
-@using System.Globalization
 
 @functions {
     public static string FormatTemperature(double temperature) => $"{Math.Round(temperature):0}°";
@@ -29,8 +28,10 @@
 @{
     ViewData["Title"] = T("Forecast Dashboard", "Погодная панель", "Панэль надвор'я");
 
+    const int hourlyForecastDisplayCount = 8;
+
     var currentWeather = Model.CurrentWeather;
-    var hourlyForecasts = Model.HourlyForecast.HourlyForecasts.Take(5).ToList();
+    var hourlyForecasts = Model.HourlyForecast.HourlyForecasts.Take(hourlyForecastDisplayCount).ToList();
     var weeklyForecasts = Model.WeeklyForecast.DailyForecasts.Take(7).ToList();
     var todayForecast = weeklyForecasts.FirstOrDefault();
     var locationDisplayName = string.IsNullOrWhiteSpace(Model.LocationDisplayName)
@@ -53,6 +54,14 @@
     var timelineUrl = Url.Action("Timeline", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
     var chatUrl = Url.Action("Chat", "Home", new { latitude = Model.Latitude, longitude = Model.Longitude, location = Model.LocationName }) ?? "#";
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var pushEnableText = T("Enable rain alerts", "Включить уведомления о дожде", "Уключыць апавяшчэнні пра дождж");
+    var pushDisableText = T("Disable rain alerts", "Отключить уведомления о дожде", "Адключыць апавяшчэнні пра дождж");
+    var pushUnsupportedText = T("Push is not supported", "Push не поддерживается", "Push не падтрымліваецца");
+    var pushDeniedText = T("Notifications blocked", "Уведомления заблокированы", "Апавяшчэнні заблакаваныя");
+    var pushEnableShortText = T("PUSH", "PUSH", "PUSH");
+    var pushDisableShortText = T("ON", "ВКЛ", "УКЛ");
+    var pushUnsupportedShortText = T("N/A", "N/A", "N/A");
+    var pushDeniedShortText = T("OFF", "OFF", "OFF");
 }
 
 <div class="weather-dashboard">
@@ -104,6 +113,19 @@
 
                         <div class="weather-search-results" data-location-results hidden></div>
                     </form>
+
+                    <button class="weather-profile-badge weather-push-toggle"
+                            type="button"
+                            data-push-toggle
+                            data-push-enable-text="@pushEnableText"
+                            data-push-disable-text="@pushDisableText"
+                            data-push-unsupported-text="@pushUnsupportedText"
+                            data-push-denied-text="@pushDeniedText"
+                            data-push-enable-short-text="@pushEnableShortText"
+                            data-push-disable-short-text="@pushDisableShortText"
+                            data-push-unsupported-short-text="@pushUnsupportedShortText"
+                            data-push-denied-short-text="@pushDeniedShortText"
+                            data-push-location-name="@Model.LocationDisplayName">@pushEnableShortText</button>
 
                     <details class="weather-language-picker">
                         <summary class="weather-profile-badge weather-language-trigger" aria-label="@T("Change language", "Сменить язык", "Змяніць мову")">@currentLanguageCode</summary>

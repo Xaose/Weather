@@ -10,9 +10,13 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 builder.Services.Configure<OpenWeatherOptions>(builder.Configuration.GetSection("OpenWeather"));
+builder.Services.Configure<PushNotificationOptions>(builder.Configuration.GetSection("PushNotifications"));
 builder.Services.AddHttpClient<ILocationSearchService, OpenWeatherLocationSearchService>();
 builder.Services.AddScoped<WeatherService>();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IPushSubscriptionStore, InMemoryPushSubscriptionStore>();
+builder.Services.AddSingleton<PushNotificationService>();
+builder.Services.AddHostedService<PushWeatherCheckWorker>();
 
 var app = builder.Build();
 
